@@ -1,0 +1,13 @@
+# Roo Code Project Rules - Expense Tracker Pro
+
+## Project Architecture
+- Framework: React 19 + Vite 8
+- UI Design: Pure CSS with CSS custom properties (no Tailwind)
+- Feedback Tool: Agentation (mounted in App.jsx, connected to http://localhost:4747)
+- Quality Control: Run `npm run build` after any code modification
+
+## Development Guidelines
+1. Visual Polish: Use modern glassmorphism, harmonious color tokens, and responsive layouts.
+2. Agentation Integration: Preserve `<Agentation endpoint="http://localhost:4747" />` so developers can annotate UI components.
+3. Component Separation: Keep state clean, modular, and maintainable.
+4. When executing multi-step tasks, refer to `TODO.md` and check off completed items.
