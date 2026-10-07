@@ -13,6 +13,7 @@
     "ralph": "powershell -ExecutionPolicy Bypass -File ./ralph.ps1"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
