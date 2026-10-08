@@ -379,6 +379,37 @@ export interface BudgetUtilization {
   currency: string;
 }
 
+export type GoalType = 'savings' | 'emergency_fund' | 'debt_payoff' | 'purchase' | 'investment';
+export type GoalStatus = 'in_progress' | 'completed' | 'paused';
+
+export interface Goal {
+  id: string;
+  workspaceId: string;
+  name: string;
+  targetAmount: string;
+  currentAmount: string;
+  currency: string;
+  targetDate?: string | null;
+  type: GoalType;
+  linkedAccountId?: string | null;
+  icon: string;
+  color: string;
+  status: GoalStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GoalProgressSummary {
+  goalId: string;
+  targetAmount: string;
+  currentAmount: string;
+  remainingAmount: string;
+  percentage: number;
+  isCompleted: boolean;
+  monthlyContributionNeeded?: string | null;
+}
+
+
 
 
 

@@ -57,16 +57,16 @@ Delivery Model: Vertical Slices (Database + Server Logic + UI + Tests together p
 ---
 
 ### STAGE C — PLANNING FEATURES
-- [ ] **Phase 10: Receipts, Attachments & OCR**
+- [x] **Phase 10: Receipts, Attachments & OCR**
   - Private storage bucket, signed URLs
   - OCR extraction into draft transactions for confirmation
-- [ ] **Phase 11: Recurring, Subscriptions & Bills Calendar**
+- [x] **Phase 11: Recurring, Subscriptions & Bills Calendar**
   - RRULE recurrence, idempotent `pg_cron` occurrences
   - 30/60/90-day cash flow projection with low-balance warnings
-- [ ] **Phase 12: Budgets**
+- [x] **Phase 12: Budgets**
   - Limit-based and envelope / zero-based budgeting
   - Rollover, threshold alerts
-- [ ] **Phase 13: Goals**
+- [x] **Phase 13: Goals**
   - Savings, emergency fund, debt-payoff goals
   - Progress derived from transfer allocations
 

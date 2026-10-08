@@ -31,6 +31,8 @@ import RecurringView from './components/recurring/RecurringView'
 import CreateRecurringModal from './components/recurring/CreateRecurringModal'
 import BudgetsView from './components/budgets/BudgetsView'
 import CreateBudgetModal from './components/budgets/CreateBudgetModal'
+import CreateGoalModal from './components/goals/CreateGoalModal'
+import AllocateGoalModal from './components/goals/AllocateGoalModal'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -135,6 +137,9 @@ export default function App() {
   const [receiptTxTargetId, setReceiptTxTargetId] = useState(null)
   const [createRecurringModalOpen, setCreateRecurringModalOpen] = useState(false)
   const [createBudgetModalOpen, setCreateBudgetModalOpen] = useState(false)
+  const [createGoalModalOpen, setCreateGoalModalOpen] = useState(false)
+  const [allocateGoalModalOpen, setAllocateGoalModalOpen] = useState(false)
+  const [selectedGoalForAlloc, setSelectedGoalForAlloc] = useState(null)
 
   // Global Keyboard Shortcuts (Ctrl+K or Q or / for Quick Add)
   useEffect(() => {
@@ -559,6 +564,11 @@ export default function App() {
           {activeTab === 'budgets' && (
             <BudgetsView
               onOpenCreateBudget={() => setCreateBudgetModalOpen(true)}
+              onOpenCreateGoal={() => setCreateGoalModalOpen(true)}
+              onOpenAllocateGoal={(goal) => {
+                setSelectedGoalForAlloc(goal);
+                setAllocateGoalModalOpen(true);
+              }}
             />
           )}
 
@@ -695,6 +705,22 @@ export default function App() {
       <CreateBudgetModal
         isOpen={createBudgetModalOpen}
         onClose={() => setCreateBudgetModalOpen(false)}
+      />
+
+      {/* Create Financial Goal Modal */}
+      <CreateGoalModal
+        isOpen={createGoalModalOpen}
+        onClose={() => setCreateGoalModalOpen(false)}
+      />
+
+      {/* Allocate Funds to Goal Modal */}
+      <AllocateGoalModal
+        isOpen={allocateGoalModalOpen}
+        goal={selectedGoalForAlloc}
+        onClose={() => {
+          setAllocateGoalModalOpen(false);
+          setSelectedGoalForAlloc(null);
+        }}
       />
     </div>
   )

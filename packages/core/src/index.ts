@@ -7,6 +7,8 @@ export * from './rules/evaluator.js';
 export * from './ocr/receiptParser.js';
 export * from './recurring/cashflow.js';
 export * from './budgets/evaluator.js';
+export * from './goals/evaluator.js';
+
 
 
 

@@ -3,9 +3,10 @@
 **Completed Stages:**
 - **Stage A: Foundations (Phases 0–4) — 100% Completed & Verified**
 - **Stage B: Ledger Core (Phases 5–9) — 100% Completed & Verified**
+- **Stage C: Planning Features (Phases 10–13) — 100% Completed & Verified**
 
-**Current Milestone:** Stage C — Planning Features  
-**Next Phase:** **Phase 10 — Receipts, Attachments & OCR** (Private storage bucket, signed URLs, OCR draft extraction)
+**Current Milestone:** Stage D — People & Obligations  
+**Next Phase:** **Phase 14 — Shared Expenses, Debts & Installments** (Split equal/exact/percent/shares, settle-up debt simplification, udhaar, BNPL/EMI)
 
 ---
 
@@ -20,8 +21,32 @@
 - **Phase 7 — Transaction Ledger (Complete & Verified)**
 - **Phase 8 — Quick Add & Offline (Complete & Verified)**
 - **Phase 9 — Rules Engine & Reconciliation (Complete & Verified)**
+- **Phase 10 — Receipts, Attachments & OCR (Complete & Verified)**
+- **Phase 11 — Recurring, Subscriptions & Bills Calendar (Complete & Verified)**
+- **Phase 12 — Budgets & Envelopes (Complete & Verified)**
+- **Phase 13 — Goals & Fund Allocations (Complete & Verified)**
 
 ---
+
+### Stage C Deliverables Verified:
+- [x] Remote Database & Migrations:
+  - `20261008000008_receipts_and_attachments.sql`: `public.attachments` + storage bucket `receipts` with authenticated/workspace RLS.
+  - `20261008000009_recurring_and_bills.sql`: `public.recurring_profiles` with interval/rrule, auto-charge, next due date calculation.
+  - `20261008000010_budgets.sql`: `public.budgets` with envelopes, rollover surplus, threshold alert percent.
+  - `20261008000011_goals.sql`: `public.goals` and `public.goal_allocations` with milestone progress and target date tracking.
+- [x] Core Domain Package (`@universal-expense/core`):
+  - OCR receipt text parser (`parseRawReceiptText`, `generateDraftFromReceipt`).
+  - Recurring & cashflow projection (`computeNextDueDate`, `generateCashFlowProjection`).
+  - Budget envelope utilization & health alerts (`calculateBudgetUtilization`).
+  - Goal target trajectory & required monthly savings (`calculateGoalProgress`).
+  - Full test suite: 10 test files, 51/51 unit tests passing.
+- [x] Frontend State & UI Modules:
+  - `AttachmentContext.jsx` + `ReceiptUploadModal.jsx`.
+  - `RecurringContext.jsx` + `CreateRecurringModal.jsx` + `RecurringView.jsx`.
+  - `BudgetContext.jsx` + `CreateBudgetModal.jsx`.
+  - `GoalContext.jsx` + `CreateGoalModal.jsx` + `AllocateGoalModal.jsx`.
+  - Unified `BudgetsView.jsx` with Category Budgets & Savings Goals tab switcher.
+  - Production build clean: `npm.cmd run build` passed with 0 errors.
 
 ### Phase 9 Deliverables Verified:
 - [x] Remote Database & Schema:

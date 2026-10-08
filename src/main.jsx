@@ -11,6 +11,7 @@ import { RuleProvider } from './context/RuleContext'
 import { AttachmentProvider } from './context/AttachmentContext'
 import { RecurringProvider } from './context/RecurringContext'
 import { BudgetProvider } from './context/BudgetContext'
+import { GoalProvider } from './context/GoalContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -23,7 +24,9 @@ createRoot(document.getElementById('root')).render(
                 <AttachmentProvider>
                   <RecurringProvider>
                     <BudgetProvider>
-                      <App />
+                      <GoalProvider>
+                        <App />
+                      </GoalProvider>
                     </BudgetProvider>
                   </RecurringProvider>
                 </AttachmentProvider>

@@ -349,6 +349,57 @@ export const BudgetUpdateSchema = z.object({
 export type BudgetCreateInput = z.infer<typeof BudgetCreateSchema>;
 export type BudgetUpdateInput = z.infer<typeof BudgetUpdateSchema>;
 
+export const GoalTypeSchema = z.enum([
+  'savings',
+  'emergency_fund',
+  'debt_payoff',
+  'purchase',
+  'investment',
+]);
+
+export const GoalStatusSchema = z.enum(['in_progress', 'completed', 'paused']);
+
+export const GoalCreateSchema = z.object({
+  workspaceId: z.string().uuid(),
+  name: z.string().trim().min(1, 'Goal name required').max(100),
+  targetAmount: MoneyStringSchema,
+  currentAmount: MoneyStringSchema.default('0.00'),
+  currency: z.string().length(3).toUpperCase().default('USD'),
+  targetDate: DateStringSchema.nullable().optional(),
+  type: GoalTypeSchema.default('savings'),
+  linkedAccountId: z.string().uuid().nullable().optional(),
+  icon: z.string().default('🎯'),
+  color: z.string().default('#6366f1'),
+  status: GoalStatusSchema.default('in_progress'),
+});
+
+export const GoalUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  targetAmount: MoneyStringSchema.optional(),
+  currentAmount: MoneyStringSchema.optional(),
+  currency: z.string().length(3).toUpperCase().optional(),
+  targetDate: DateStringSchema.nullable().optional(),
+  type: GoalTypeSchema.optional(),
+  linkedAccountId: z.string().uuid().nullable().optional(),
+  icon: z.string().optional(),
+  color: z.string().optional(),
+  status: GoalStatusSchema.optional(),
+});
+
+export const GoalAllocationCreateSchema = z.object({
+  goalId: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  transactionId: z.string().uuid().nullable().optional(),
+  amount: MoneyStringSchema,
+  currency: z.string().length(3).toUpperCase().default('USD'),
+  notes: z.string().nullable().optional(),
+});
+
+export type GoalCreateInput = z.infer<typeof GoalCreateSchema>;
+export type GoalUpdateInput = z.infer<typeof GoalUpdateSchema>;
+export type GoalAllocationCreateInput = z.infer<typeof GoalAllocationCreateSchema>;
+
+
 
 
 
