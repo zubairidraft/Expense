@@ -10,6 +10,7 @@ export default function TransactionsView({
   onOpenCreateTransaction,
   onOpenReconcile,
   onOpenRules,
+  onOpenReceiptScanner,
 }) {
   const { transactions, totalIncome, totalExpense, deleteTransaction } = useTransactions();
   const { accounts } = useAccounts();
@@ -135,6 +136,18 @@ export default function TransactionsView({
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            {onOpenReceiptScanner && (
+              <button
+                type="button"
+                onClick={() => onOpenReceiptScanner(null)}
+                className="secondary-btn"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 0.85rem' }}
+                title="Scan physical receipt or invoice via OCR"
+              >
+                <span>📷</span> Scan Receipt
+              </button>
+            )}
+
             {onOpenRules && (
               <button
                 type="button"
@@ -301,6 +314,7 @@ export default function TransactionsView({
         transaction={selectedTx}
         isOpen={Boolean(selectedTx)}
         onClose={() => setSelectedTx(null)}
+        onOpenAttachReceipt={onOpenReceiptScanner}
       />
     </div>
   );

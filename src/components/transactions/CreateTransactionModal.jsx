@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccounts } from '../../context/AccountContext';
 import { useCategories } from '../../context/CategoryContext';
 import { useTransactions } from '../../context/TransactionContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import MoneyInput from '../ui/MoneyInput';
 
-export default function CreateTransactionModal({ isOpen, onClose }) {
+export default function CreateTransactionModal({ isOpen, onClose, initialDraft = null }) {
   const { accounts } = useAccounts();
   const { categories, merchants, tags, expenseCategories, incomeCategories } = useCategories();
   const { addTransaction } = useTransactions();
@@ -45,6 +45,16 @@ export default function CreateTransactionModal({ isOpen, onClose }) {
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (initialDraft && isOpen) {
+      if (initialDraft.type) setType(initialDraft.type);
+      if (initialDraft.date) setDate(initialDraft.date);
+      if (initialDraft.merchantName) setPayeeName(initialDraft.merchantName);
+      if (initialDraft.totalAmount) setAmount(initialDraft.totalAmount);
+      if (initialDraft.notes) setNotes(initialDraft.notes);
+    }
+  }, [initialDraft, isOpen]);
 
   if (!isOpen) return null;
 

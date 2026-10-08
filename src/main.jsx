@@ -8,6 +8,7 @@ import { AccountProvider } from './context/AccountContext'
 import { CategoryProvider } from './context/CategoryContext'
 import { TransactionProvider } from './context/TransactionContext'
 import { RuleProvider } from './context/RuleContext'
+import { AttachmentProvider } from './context/AttachmentContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -17,7 +18,9 @@ createRoot(document.getElementById('root')).render(
           <CategoryProvider>
             <TransactionProvider>
               <RuleProvider>
-                <App />
+                <AttachmentProvider>
+                  <App />
+                </AttachmentProvider>
               </RuleProvider>
             </TransactionProvider>
           </CategoryProvider>

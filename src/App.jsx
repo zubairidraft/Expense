@@ -26,6 +26,7 @@ import CreateTransactionModal from './components/transactions/CreateTransactionM
 import QuickAddModal from './components/transactions/QuickAddModal'
 import ReconciliationModal from './components/reconciliation/ReconciliationModal'
 import RulesModal from './components/rules/RulesModal'
+import ReceiptUploadModal from './components/receipts/ReceiptUploadModal'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -125,6 +126,9 @@ export default function App() {
   const [quickAddModalOpen, setQuickAddModalOpen] = useState(false)
   const [reconcileModalOpen, setReconcileModalOpen] = useState(false)
   const [rulesModalOpen, setRulesModalOpen] = useState(false)
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false)
+  const [receiptDraftData, setReceiptDraftData] = useState(null)
+  const [receiptTxTargetId, setReceiptTxTargetId] = useState(null)
 
   // Global Keyboard Shortcuts (Ctrl+K or Q or / for Quick Add)
   useEffect(() => {
@@ -511,9 +515,16 @@ export default function App() {
 
           {activeTab === 'transactions' && (
             <TransactionsView
-              onOpenCreateTransaction={() => setCreateTxModalOpen(true)}
+              onOpenCreateTransaction={() => {
+                setReceiptDraftData(null);
+                setCreateTxModalOpen(true);
+              }}
               onOpenReconcile={() => setReconcileModalOpen(true)}
               onOpenRules={() => setRulesModalOpen(true)}
+              onOpenReceiptScanner={(txId) => {
+                setReceiptTxTargetId(txId);
+                setReceiptModalOpen(true);
+              }}
             />
           )}
 
@@ -648,7 +659,11 @@ export default function App() {
       {/* Book Transaction Modal */}
       <CreateTransactionModal
         isOpen={createTxModalOpen}
-        onClose={() => setCreateTxModalOpen(false)}
+        onClose={() => {
+          setCreateTxModalOpen(false);
+          setReceiptDraftData(null);
+        }}
+        initialDraft={receiptDraftData}
       />
 
       {/* Quick Add Speed Entry Modal */}
@@ -667,6 +682,20 @@ export default function App() {
       <RulesModal
         isOpen={rulesModalOpen}
         onClose={() => setRulesModalOpen(false)}
+      />
+
+      {/* Receipt OCR Scanner & Attachment Modal */}
+      <ReceiptUploadModal
+        isOpen={receiptModalOpen}
+        transactionId={receiptTxTargetId}
+        onClose={() => {
+          setReceiptModalOpen(false);
+          setReceiptTxTargetId(null);
+        }}
+        onConfirmDraft={(draft) => {
+          setReceiptDraftData(draft);
+          setCreateTxModalOpen(true);
+        }}
       />
     </div>
   )

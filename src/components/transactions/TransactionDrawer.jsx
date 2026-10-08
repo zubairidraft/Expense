@@ -1,8 +1,15 @@
 import { useTransactions } from '../../context/TransactionContext';
+import { useAttachments } from '../../context/AttachmentContext';
 import MoneyDisplay from '../ui/MoneyDisplay';
 
-export default function TransactionDrawer({ transaction, isOpen, onClose }) {
+export default function TransactionDrawer({
+  transaction,
+  isOpen,
+  onClose,
+  onOpenAttachReceipt,
+}) {
   const { deleteTransaction, updateStatus } = useTransactions();
+  const { getAttachmentsForTransaction } = useAttachments();
 
   if (!isOpen || !transaction) return null;
 
@@ -18,6 +25,7 @@ export default function TransactionDrawer({ transaction, isOpen, onClose }) {
   };
 
   const lines = transaction.lines || [];
+  const txAttachments = getAttachmentsForTransaction ? getAttachmentsForTransaction(transaction.id) : [];
 
   return (
     <div className="drawer-backdrop" onClick={onClose}>
@@ -134,6 +142,63 @@ export default function TransactionDrawer({ transaction, isOpen, onClose }) {
                 <span className="meta-value">{new Date(transaction.created_at).toLocaleString()}</span>
               </div>
             </div>
+          </div>
+
+          {/* Attached Receipts & Invoices */}
+          <div className="drawer-section">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="drawer-section-label">Attached Receipts ({txAttachments.length})</span>
+              {onOpenAttachReceipt && (
+                <button
+                  type="button"
+                  onClick={() => onOpenAttachReceipt(transaction.id)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#38bdf8',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  ➕ Attach Receipt
+                </button>
+              )}
+            </div>
+            {txAttachments.length === 0 ? (
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted, #94a3b8)', margin: '0.4rem 0 0' }}>
+                No physical receipt or document linked yet.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {txAttachments.map((att) => (
+                  <div
+                    key={att.id}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '8px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span>🧾</span>
+                      <div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f8fafc' }}>
+                          {att.file_name}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          {(att.file_size / 1024).toFixed(1)} KB · OCR: {att.ocr_status}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Status Change Selector */}

@@ -243,3 +243,32 @@ export type RuleCreateInput = z.infer<typeof RuleCreateSchema>;
 export type RuleUpdateInput = z.infer<typeof RuleUpdateSchema>;
 export type ReconciliationCreateInput = z.infer<typeof ReconciliationCreateSchema>;
 
+export const OcrExtractedDataSchema = z.object({
+  merchantName: z.string().nullable().optional(),
+  totalAmount: MoneyStringSchema.nullable().optional(),
+  taxAmount: MoneyStringSchema.nullable().optional(),
+  currency: z.string().length(3).toUpperCase().nullable().optional(),
+  date: DateStringSchema.nullable().optional(),
+  lineItems: z.array(z.object({
+    description: z.string(),
+    amount: MoneyStringSchema,
+  })).optional(),
+  confidence: z.number().min(0).max(1).optional(),
+});
+
+export const AttachmentCreateSchema = z.object({
+  workspaceId: z.string().uuid(),
+  transactionId: z.string().uuid().nullable().optional(),
+  filePath: z.string().min(1),
+  fileName: z.string().min(1),
+  fileSize: z.number().int().positive(),
+  mimeType: z.string().min(1),
+  ocrStatus: z.enum(['pending', 'processing', 'completed', 'failed', 'none']).default('pending'),
+  ocrRawText: z.string().nullable().optional(),
+  ocrExtractedData: OcrExtractedDataSchema.optional(),
+});
+
+export type OcrExtractedDataInput = z.infer<typeof OcrExtractedDataSchema>;
+export type AttachmentCreateInput = z.infer<typeof AttachmentCreateSchema>;
+
+

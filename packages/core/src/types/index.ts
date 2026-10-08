@@ -256,3 +256,45 @@ export interface StatementReconciliation {
   updatedAt?: string;
 }
 
+export type OcrStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'none';
+
+export interface OcrExtractedData {
+  merchantName?: string | null;
+  totalAmount?: string | null;
+  taxAmount?: string | null;
+  currency?: string | null;
+  date?: string | null;
+  lineItems?: Array<{ description: string; amount: string }>;
+  confidence?: number;
+}
+
+export interface Attachment {
+  id: string;
+  workspaceId: string;
+  transactionId?: string | null;
+  filePath: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  ocrStatus: OcrStatus;
+  ocrRawText?: string | null;
+  ocrExtractedData: OcrExtractedData;
+  uploadedBy?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DraftTransactionFromReceipt {
+  type: TransactionType;
+  date: string;
+  merchantName?: string | null;
+  totalAmount: string;
+  currency: string;
+  taxAmount?: string | null;
+  notes?: string | null;
+  attachmentId?: string | null;
+  status: 'draft';
+  confidence: number;
+}
+
+
