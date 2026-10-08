@@ -348,5 +348,37 @@ export interface CashFlowProjectionSummary {
   lowestProjectedBalance: string;
 }
 
+export type BudgetPeriod = 'monthly' | 'weekly' | 'quarterly' | 'yearly';
+
+export interface Budget {
+  id: string;
+  workspaceId: string;
+  categoryId: string;
+  period: BudgetPeriod;
+  amount: string;
+  currency: string;
+  rolloverEnabled: boolean;
+  rolloverAmount: string;
+  alertThreshold: number;
+  startDate: string;
+  endDate?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BudgetUtilization {
+  budgetId: string;
+  categoryId: string;
+  budgetedAmount: string;
+  effectiveLimit: string;
+  spentAmount: string;
+  remainingAmount: string;
+  percentageUsed: number;
+  isWarning: boolean;
+  isExceeded: boolean;
+  currency: string;
+}
+
+
 
 

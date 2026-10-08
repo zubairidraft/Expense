@@ -29,6 +29,8 @@ import RulesModal from './components/rules/RulesModal'
 import ReceiptUploadModal from './components/receipts/ReceiptUploadModal'
 import RecurringView from './components/recurring/RecurringView'
 import CreateRecurringModal from './components/recurring/CreateRecurringModal'
+import BudgetsView from './components/budgets/BudgetsView'
+import CreateBudgetModal from './components/budgets/CreateBudgetModal'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -132,6 +134,7 @@ export default function App() {
   const [receiptDraftData, setReceiptDraftData] = useState(null)
   const [receiptTxTargetId, setReceiptTxTargetId] = useState(null)
   const [createRecurringModalOpen, setCreateRecurringModalOpen] = useState(false)
+  const [createBudgetModalOpen, setCreateBudgetModalOpen] = useState(false)
 
   // Global Keyboard Shortcuts (Ctrl+K or Q or / for Quick Add)
   useEffect(() => {
@@ -554,34 +557,9 @@ export default function App() {
 
 
           {activeTab === 'budgets' && (
-            <section className="panel" aria-label="Budget Limits">
-              <h2 className="panel-title">
-                <span>🎯</span> Category Budgets & Targets
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                Limit-based envelopes configured for {currentWorkspace?.name || 'Workspace'}.
-              </p>
-              <div className="category-bars" style={{ marginTop: '1.5rem' }}>
-                <div className="cat-bar-item">
-                  <div className="cat-bar-header">
-                    <span>Software & Cloud Services</span>
-                    <span>$145.50 / $300.00 (48%)</span>
-                  </div>
-                  <div className="cat-bar-track">
-                    <div className="cat-bar-fill" style={{ width: '48%', background: '#6366f1' }} />
-                  </div>
-                </div>
-                <div className="cat-bar-item">
-                  <div className="cat-bar-header">
-                    <span>Groceries & Supplies</span>
-                    <span>$88.20 / $500.00 (17%)</span>
-                  </div>
-                  <div className="cat-bar-track">
-                    <div className="cat-bar-fill" style={{ width: '17%', background: '#10b981' }} />
-                  </div>
-                </div>
-              </div>
-            </section>
+            <BudgetsView
+              onOpenCreateBudget={() => setCreateBudgetModalOpen(true)}
+            />
           )}
 
           {activeTab === 'analytics' && (
@@ -711,6 +689,12 @@ export default function App() {
       <CreateRecurringModal
         isOpen={createRecurringModalOpen}
         onClose={() => setCreateRecurringModalOpen(false)}
+      />
+
+      {/* Set Category Budget Envelope Modal */}
+      <CreateBudgetModal
+        isOpen={createBudgetModalOpen}
+        onClose={() => setCreateBudgetModalOpen(false)}
       />
     </div>
   )

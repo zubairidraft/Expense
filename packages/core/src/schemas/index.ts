@@ -320,5 +320,35 @@ export const RecurringProfileUpdateSchema = z.object({
 export type RecurringProfileCreateInput = z.infer<typeof RecurringProfileCreateSchema>;
 export type RecurringProfileUpdateInput = z.infer<typeof RecurringProfileUpdateSchema>;
 
+export const BudgetPeriodSchema = z.enum(['monthly', 'weekly', 'quarterly', 'yearly']);
+
+export const BudgetCreateSchema = z.object({
+  workspaceId: z.string().uuid(),
+  categoryId: z.string().uuid(),
+  period: BudgetPeriodSchema.default('monthly'),
+  amount: MoneyStringSchema,
+  currency: z.string().length(3).toUpperCase().default('USD'),
+  rolloverEnabled: z.boolean().default(false),
+  rolloverAmount: MoneyStringSchema.default('0.00'),
+  alertThreshold: z.number().int().min(10).max(100).default(85),
+  startDate: DateStringSchema,
+  endDate: DateStringSchema.nullable().optional(),
+});
+
+export const BudgetUpdateSchema = z.object({
+  amount: MoneyStringSchema.optional(),
+  period: BudgetPeriodSchema.optional(),
+  currency: z.string().length(3).toUpperCase().optional(),
+  rolloverEnabled: z.boolean().optional(),
+  rolloverAmount: MoneyStringSchema.optional(),
+  alertThreshold: z.number().int().min(10).max(100).optional(),
+  startDate: DateStringSchema.optional(),
+  endDate: DateStringSchema.nullable().optional(),
+});
+
+export type BudgetCreateInput = z.infer<typeof BudgetCreateSchema>;
+export type BudgetUpdateInput = z.infer<typeof BudgetUpdateSchema>;
+
+
 
 
