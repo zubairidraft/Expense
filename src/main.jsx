@@ -9,6 +9,7 @@ import { CategoryProvider } from './context/CategoryContext'
 import { TransactionProvider } from './context/TransactionContext'
 import { RuleProvider } from './context/RuleContext'
 import { AttachmentProvider } from './context/AttachmentContext'
+import { RecurringProvider } from './context/RecurringContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -19,7 +20,9 @@ createRoot(document.getElementById('root')).render(
             <TransactionProvider>
               <RuleProvider>
                 <AttachmentProvider>
-                  <App />
+                  <RecurringProvider>
+                    <App />
+                  </RecurringProvider>
                 </AttachmentProvider>
               </RuleProvider>
             </TransactionProvider>

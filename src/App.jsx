@@ -27,6 +27,8 @@ import QuickAddModal from './components/transactions/QuickAddModal'
 import ReconciliationModal from './components/reconciliation/ReconciliationModal'
 import RulesModal from './components/rules/RulesModal'
 import ReceiptUploadModal from './components/receipts/ReceiptUploadModal'
+import RecurringView from './components/recurring/RecurringView'
+import CreateRecurringModal from './components/recurring/CreateRecurringModal'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -129,6 +131,7 @@ export default function App() {
   const [receiptModalOpen, setReceiptModalOpen] = useState(false)
   const [receiptDraftData, setReceiptDraftData] = useState(null)
   const [receiptTxTargetId, setReceiptTxTargetId] = useState(null)
+  const [createRecurringModalOpen, setCreateRecurringModalOpen] = useState(false)
 
   // Global Keyboard Shortcuts (Ctrl+K or Q or / for Quick Add)
   useEffect(() => {
@@ -543,6 +546,12 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'recurring' && (
+            <RecurringView
+              onOpenCreateRecurring={() => setCreateRecurringModalOpen(true)}
+            />
+          )}
+
 
           {activeTab === 'budgets' && (
             <section className="panel" aria-label="Budget Limits">
@@ -696,6 +705,12 @@ export default function App() {
           setReceiptDraftData(draft);
           setCreateTxModalOpen(true);
         }}
+      />
+
+      {/* Create Recurring Profile Modal */}
+      <CreateRecurringModal
+        isOpen={createRecurringModalOpen}
+        onClose={() => setCreateRecurringModalOpen(false)}
       />
     </div>
   )

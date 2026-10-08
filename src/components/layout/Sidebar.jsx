@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { id: 'transactions', label: 'Ledger Activity', icon: '🧾' },
   { id: 'accounts', label: 'Accounts & Vaults', icon: '💳' },
   { id: 'categories', label: 'Categories & Tags', icon: '🏷️' },
+  { id: 'recurring', label: 'Bills & Subscriptions', icon: '🔁' },
   { id: 'budgets', label: 'Budgets & Goals', icon: '🎯' },
   { id: 'analytics', label: 'Visual Analytics', icon: '📈' },
   { id: 'settings', label: 'Preferences', icon: '⚙️' },

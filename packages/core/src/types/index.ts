@@ -297,4 +297,56 @@ export interface DraftTransactionFromReceipt {
   confidence: number;
 }
 
+export type RecurringFrequency =
+  | 'daily'
+  | 'weekly'
+  | 'biweekly'
+  | 'monthly'
+  | 'quarterly'
+  | 'yearly';
+
+export interface RecurringProfile {
+  id: string;
+  workspaceId: string;
+  title: string;
+  type: TransactionType;
+  frequency: RecurringFrequency;
+  interval: number;
+  startDate: string;
+  endDate?: string | null;
+  nextDueDate: string;
+  amount: string;
+  currency: string;
+  accountId?: string | null;
+  categoryId?: string | null;
+  autoPost: boolean;
+  active: boolean;
+  reminderDaysBefore: number;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CashFlowProjectedOccurrence {
+  profileId: string;
+  title: string;
+  type: TransactionType;
+  date: string;
+  amount: string;
+  currency: string;
+  accountId?: string | null;
+}
+
+export interface CashFlowProjectionSummary {
+  daysAhead: number;
+  startingBalance: string;
+  projectedInflow: string;
+  projectedOutflow: string;
+  projectedEndingBalance: string;
+  occurrences: CashFlowProjectedOccurrence[];
+  hasLowBalanceWarning: boolean;
+  lowestProjectedBalance: string;
+}
+
+
 

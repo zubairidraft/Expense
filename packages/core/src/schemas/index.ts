@@ -271,4 +271,54 @@ export const AttachmentCreateSchema = z.object({
 export type OcrExtractedDataInput = z.infer<typeof OcrExtractedDataSchema>;
 export type AttachmentCreateInput = z.infer<typeof AttachmentCreateSchema>;
 
+export const RecurringFrequencySchema = z.enum([
+  'daily',
+  'weekly',
+  'biweekly',
+  'monthly',
+  'quarterly',
+  'yearly',
+]);
+
+export const RecurringProfileCreateSchema = z.object({
+  workspaceId: z.string().uuid(),
+  title: z.string().trim().min(1, 'Title is required').max(100),
+  type: z.enum(['expense', 'income', 'transfer']),
+  frequency: RecurringFrequencySchema,
+  interval: z.number().int().min(1).default(1),
+  startDate: DateStringSchema,
+  endDate: DateStringSchema.nullable().optional(),
+  nextDueDate: DateStringSchema,
+  amount: MoneyStringSchema,
+  currency: z.string().length(3).toUpperCase().default('USD'),
+  accountId: z.string().uuid().nullable().optional(),
+  categoryId: z.string().uuid().nullable().optional(),
+  autoPost: z.boolean().default(false),
+  active: z.boolean().default(true),
+  reminderDaysBefore: z.number().int().min(0).max(30).default(3),
+  notes: z.string().nullable().optional(),
+});
+
+export const RecurringProfileUpdateSchema = z.object({
+  title: z.string().trim().min(1).max(100).optional(),
+  type: z.enum(['expense', 'income', 'transfer']).optional(),
+  frequency: RecurringFrequencySchema.optional(),
+  interval: z.number().int().min(1).optional(),
+  startDate: DateStringSchema.optional(),
+  endDate: DateStringSchema.nullable().optional(),
+  nextDueDate: DateStringSchema.optional(),
+  amount: MoneyStringSchema.optional(),
+  currency: z.string().length(3).toUpperCase().optional(),
+  accountId: z.string().uuid().nullable().optional(),
+  categoryId: z.string().uuid().nullable().optional(),
+  autoPost: z.boolean().optional(),
+  active: z.boolean().optional(),
+  reminderDaysBefore: z.number().int().min(0).max(30).optional(),
+  notes: z.string().nullable().optional(),
+});
+
+export type RecurringProfileCreateInput = z.infer<typeof RecurringProfileCreateSchema>;
+export type RecurringProfileUpdateInput = z.infer<typeof RecurringProfileUpdateSchema>;
+
+
 
