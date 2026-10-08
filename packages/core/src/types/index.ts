@@ -114,3 +114,20 @@ export interface TransactionHeader {
   source: TransactionSource;
   lines: TransactionLine[];
 }
+
+export type NumberFormat = 'intl' | 'lakh';
+
+export type ThemePreference = 'dark' | 'light' | 'system';
+
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  avatarUrl?: string | null;
+  defaultCurrency: string;
+  locale: string;
+  numberFormat: NumberFormat;
+  dateFormat: string;
+  theme: ThemePreference;
+  createdAt?: string;
+  updatedAt?: string;
+}

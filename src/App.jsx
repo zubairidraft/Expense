@@ -1,5 +1,10 @@
 import { useState, useMemo } from 'react'
 import { Agentation } from 'agentation'
+import { useAuth } from './context/AuthContext'
+import { formatMoney, CURRENCY_REGISTRY } from './lib/formatters'
+import Navbar from './components/layout/Navbar'
+import AuthModal from './components/auth/AuthModal'
+import ProfileSettingsModal from './components/profile/ProfileSettingsModal'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -10,7 +15,7 @@ const INITIAL_TRANSACTIONS = [
     type: 'income',
     category: 'Freelance',
     date: '2026-10-06',
-    icon: '💼'
+    icon: '💼',
   },
   {
     id: 'tx-2',
@@ -19,7 +24,7 @@ const INITIAL_TRANSACTIONS = [
     type: 'expense',
     category: 'Software & Tools',
     date: '2026-10-05',
-    icon: '☁️'
+    icon: '☁️',
   },
   {
     id: 'tx-3',
@@ -28,7 +33,7 @@ const INITIAL_TRANSACTIONS = [
     type: 'expense',
     category: 'Groceries',
     date: '2026-10-04',
-    icon: '🛒'
+    icon: '🛒',
   },
   {
     id: 'tx-4',
@@ -37,7 +42,7 @@ const INITIAL_TRANSACTIONS = [
     type: 'expense',
     category: 'Workplace',
     date: '2026-10-02',
-    icon: '🪑'
+    icon: '🪑',
   },
   {
     id: 'tx-5',
@@ -46,8 +51,8 @@ const INITIAL_TRANSACTIONS = [
     type: 'income',
     category: 'Investments',
     date: '2026-10-01',
-    icon: '📈'
-  }
+    icon: '📈',
+  },
 ]
 
 const CATEGORIES = {
@@ -58,17 +63,21 @@ const CATEGORIES = {
     { label: 'Dining Out', icon: '🍜', color: '#ec4899' },
     { label: 'Transport', icon: '🚗', color: '#06b6d4' },
     { label: 'Health & Wellness', icon: '🌿', color: '#14b8a6' },
-    { label: 'Other', icon: '📦', color: '#8b5cf6' }
+    { label: 'Other', icon: '📦', color: '#8b5cf6' },
   ],
   income: [
     { label: 'Salary / Client', icon: '💼', color: '#10b981' },
     { label: 'Freelance', icon: '⚡', color: '#6366f1' },
     { label: 'Investments', icon: '📈', color: '#3b82f6' },
-    { label: 'Other Income', icon: '💰', color: '#d946ef' }
-  ]
+    { label: 'Other Income', icon: '💰', color: '#d946ef' },
+  ],
 }
 
 export default function App() {
+  const { profile } = useAuth()
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false)
+
   const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS)
   const [type, setType] = useState('expense')
   const [title, setTitle] = useState('')
@@ -76,6 +85,10 @@ export default function App() {
   const [category, setCategory] = useState(CATEGORIES.expense[0].label)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
+
+  const currencyCode = profile?.defaultCurrency || 'USD'
+  const numberFormat = profile?.numberFormat || 'intl'
+  const currencyInfo = CURRENCY_REGISTRY[currencyCode] || { symbol: currencyCode }
 
   const totalIncome = useMemo(() => {
     return transactions
@@ -90,12 +103,18 @@ export default function App() {
   }, [transactions])
 
   const balance = totalIncome - totalExpense
-  const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalExpense) / totalIncome) * 100) : 0
+  const savingsRate =
+    totalIncome > 0
+      ? Math.round(((totalIncome - totalExpense) / totalIncome) * 100)
+      : 0
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
-      const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesCategory = filterCategory === 'all' || t.category === filterCategory
+      const matchesSearch = t.title
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
+      const matchesCategory =
+        filterCategory === 'all' || t.category === filterCategory
       return matchesSearch && matchesCategory
     })
   }, [transactions, searchQuery, filterCategory])
@@ -109,7 +128,7 @@ export default function App() {
     return Object.entries(grouped).map(([cat, val]) => ({
       name: cat,
       amount: val,
-      percent: totalExpense > 0 ? Math.round((val / totalExpense) * 100) : 0
+      percent: totalExpense > 0 ? Math.round((val / totalExpense) * 100) : 0,
     }))
   }, [transactions, totalExpense])
 
@@ -118,7 +137,8 @@ export default function App() {
     if (!title.trim() || !amount || Number(amount) <= 0) return
 
     const categoryList = CATEGORIES[type]
-    const matched = categoryList.find((c) => c.label === category) || categoryList[0]
+    const matched =
+      categoryList.find((c) => c.label === category) || categoryList[0]
 
     const newTx = {
       id: `tx-${Date.now()}`,
@@ -127,7 +147,7 @@ export default function App() {
       type,
       category: matched.label,
       date: new Date().toISOString().split('T')[0],
-      icon: matched.icon
+      icon: matched.icon,
     }
 
     setTransactions([newTx, ...transactions])
@@ -144,23 +164,11 @@ export default function App() {
       {/* Visual Annotation Toolbar for AI Agents */}
       <Agentation endpoint="http://localhost:4747" appName="Expense Tracking" />
 
-      {/* Top Header */}
-      <header className="app-header">
-        <div className="brand-section">
-          <div className="brand-icon">💳</div>
-          <div>
-            <h1 className="app-title">Expense Tracker Pro</h1>
-            <p className="app-subtitle">AI-Assisted Smart Financial Manager & Budgeting</p>
-          </div>
-        </div>
-
-        <div className="header-badges">
-          <div className="agent-badge" title="Agentation Visual Feedback is Active">
-            <span className="pulse-dot"></span>
-            Agentation Active
-          </div>
-        </div>
-      </header>
+      {/* Top Header & Auth Navigation */}
+      <Navbar
+        onOpenAuth={() => setAuthModalOpen(true)}
+        onOpenSettings={() => setSettingsModalOpen(true)}
+      />
 
       {/* Overview Metric Cards */}
       <section className="stats-grid" aria-label="Financial Overview">
@@ -170,9 +178,12 @@ export default function App() {
             <span className="stat-icon">🏦</span>
           </div>
           <div className="stat-value">
-            ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {formatMoney(balance, currencyCode, numberFormat)}
           </div>
-          <div className="stat-meta">Live calculated from transactions</div>
+          <div className="stat-meta">
+            Currency: {currencyCode} ({currencyInfo.symbol}) ·{' '}
+            {numberFormat === 'lakh' ? 'Lakh/Crore' : 'International'}
+          </div>
         </div>
 
         <div className="stat-card">
@@ -181,9 +192,11 @@ export default function App() {
             <span className="stat-icon">📈</span>
           </div>
           <div className="stat-value income">
-            +${totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            +{formatMoney(totalIncome, currencyCode, numberFormat)}
           </div>
-          <div className="stat-meta">{transactions.filter(t => t.type === 'income').length} income records</div>
+          <div className="stat-meta">
+            {transactions.filter((t) => t.type === 'income').length} income records
+          </div>
         </div>
 
         <div className="stat-card">
@@ -192,9 +205,11 @@ export default function App() {
             <span className="stat-icon">📉</span>
           </div>
           <div className="stat-value expense">
-            -${totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            -{formatMoney(totalExpense, currencyCode, numberFormat)}
           </div>
-          <div className="stat-meta">{transactions.filter(t => t.type === 'expense').length} expense records</div>
+          <div className="stat-meta">
+            {transactions.filter((t) => t.type === 'expense').length} expense records
+          </div>
         </div>
 
         <div className="stat-card">
@@ -202,17 +217,21 @@ export default function App() {
             <span className="stat-label">Savings Rate</span>
             <span className="stat-icon">🎯</span>
           </div>
-          <div className="stat-value">
-            {savingsRate}%
+          <div className="stat-value">{savingsRate}%</div>
+          <div className="stat-meta">
+            {savingsRate >= 20
+              ? 'Optimal savings buffer'
+              : 'Consider reviewing budget'}
           </div>
-          <div className="stat-meta">{savingsRate >= 20 ? 'Optimal savings buffer' : 'Consider reviewing budget'}</div>
         </div>
       </section>
 
       {/* Main Grid: Add Transaction Form & History */}
       <div className="dashboard-layout">
         {/* Left Column: New Transaction Form & Category Allocation */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}
+        >
           <section className="panel" aria-label="Add New Transaction">
             <h2 className="panel-title">
               <span>⚡</span> Add Transaction
@@ -243,7 +262,9 @@ export default function App() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="tx-title">Title / Merchant</label>
+                <label className="form-label" htmlFor="tx-title">
+                  Title / Merchant
+                </label>
                 <input
                   id="tx-title"
                   className="input-field"
@@ -255,7 +276,9 @@ export default function App() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="tx-amount">Amount ($)</label>
+                <label className="form-label" htmlFor="tx-amount">
+                  Amount ({currencyInfo.symbol})
+                </label>
                 <input
                   id="tx-amount"
                   className="input-field"
@@ -270,7 +293,9 @@ export default function App() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="tx-category">Category</label>
+                <label className="form-label" htmlFor="tx-category">
+                  Category
+                </label>
                 <select
                   id="tx-category"
                   className="select-field"
@@ -285,7 +310,7 @@ export default function App() {
                 </select>
               </div>
 
-              <button type="submit" className="submit-btn">
+              <button type="submit" className="submit-btn primary-glow">
                 Add {type === 'expense' ? 'Expense' : 'Income'}
               </button>
             </form>
@@ -302,14 +327,17 @@ export default function App() {
                   <div key={item.name} className="cat-bar-item">
                     <div className="cat-bar-header">
                       <span>{item.name}</span>
-                      <span>${item.amount.toFixed(2)} ({item.percent}%)</span>
+                      <span>
+                        {formatMoney(item.amount, currencyCode, numberFormat)} (
+                        {item.percent}%)
+                      </span>
                     </div>
                     <div className="cat-bar-track">
                       <div
                         className="cat-bar-fill"
                         style={{
                           width: `${item.percent}%`,
-                          background: 'var(--accent-gradient)'
+                          background: 'var(--accent-gradient)',
                         }}
                       />
                     </div>
@@ -368,8 +396,8 @@ export default function App() {
 
                   <div className="tx-right">
                     <span className={`tx-amount ${tx.type}`}>
-                      {tx.type === 'income' ? '+' : '-'}$
-                      {tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {tx.type === 'income' ? '+' : '-'}
+                      {formatMoney(tx.amount, currencyCode, numberFormat)}
                     </span>
                     <button
                       type="button"
@@ -386,6 +414,18 @@ export default function App() {
           </div>
         </section>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
+
+      {/* Profile & Regional Settings Modal */}
+      <ProfileSettingsModal
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+      />
     </div>
   )
 }

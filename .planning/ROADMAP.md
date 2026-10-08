@@ -6,15 +6,15 @@ Delivery Model: Vertical Slices (Database + Server Logic + UI + Tests together p
 ---
 
 ### STAGE A — FOUNDATION
-- [ ] **Phase 0: Product & Architecture Foundation**
+- [x] **Phase 0: Product & Architecture Foundation**
   - Scope, workspace types, roles, permission matrix (role × action × resource)
   - Financial semantics, sign conventions, currency precision
   - Set up `packages/core` with shared types, Zod schemas, money utilities
-- [ ] **Phase 1: Backend Infrastructure**
+- [x] **Phase 1: Backend Infrastructure**
   - Supabase, PostgreSQL, Auth, Storage, Edge Functions
   - Enable `pg_cron`, set up `pgTAP` test harness in CI
   - Migrations, seed scripts, secrets
-- [ ] **Phase 2: Authentication & Profiles**
+- [x] **Phase 2: Authentication & Profiles**
   - Sign-up, login, logout, password reset
   - Profiles: currency, locale, number format (lakh/intl), date format, theme
 - [ ] **Phase 3: Workspaces, Membership & Permissions**

@@ -110,3 +110,15 @@ export type WorkspaceCreateInput = z.infer<typeof WorkspaceCreateSchema>;
 export type AccountCreateInput = z.infer<typeof AccountCreateSchema>;
 export type TransactionLineCreateInput = z.infer<typeof TransactionLineCreateSchema>;
 export type TransactionCreateInput = z.infer<typeof TransactionCreateSchema>;
+
+export const ProfileUpdateSchema = z.object({
+  fullName: z.string().trim().min(1, 'Name cannot be empty').max(100).optional(),
+  avatarUrl: z.string().url('Avatar must be a valid URL').or(z.literal('')).nullable().optional(),
+  defaultCurrency: z.string().length(3, 'Currency code must be 3 letters').toUpperCase().optional(),
+  locale: z.string().min(2).max(20).optional(),
+  numberFormat: z.enum(['intl', 'lakh']).optional(),
+  dateFormat: z.string().min(4).max(30).optional(),
+  theme: z.enum(['dark', 'light', 'system']).optional(),
+});
+
+export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;
