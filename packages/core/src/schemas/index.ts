@@ -200,7 +200,46 @@ export const MerchantCreateSchema = z.object({
   logoUrl: z.string().url().nullable().optional(),
 });
 
+export const RuleConditionSchema = z.object({
+  field: z.enum(['payee_name', 'notes', 'amount', 'type']),
+  operator: z.enum(['contains', 'equals', 'starts_with', 'ends_with', 'greater_than', 'less_than']),
+  value: z.string(),
+});
+
+export const RuleActionSchema = z.object({
+  type: z.enum(['set_category', 'set_account', 'add_tag', 'mark_cleared']),
+  value: z.string(),
+});
+
+export const RuleCreateSchema = z.object({
+  name: z.string().trim().min(1, 'Rule name required').max(100),
+  priority: z.number().int().default(100),
+  active: z.boolean().default(true),
+  conditions: z.array(RuleConditionSchema).min(1, 'At least one condition required'),
+  actions: z.array(RuleActionSchema).min(1, 'At least one action required'),
+});
+
+export const RuleUpdateSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  priority: z.number().int().optional(),
+  active: z.boolean().optional(),
+  conditions: z.array(RuleConditionSchema).optional(),
+  actions: z.array(RuleActionSchema).optional(),
+});
+
+export const ReconciliationCreateSchema = z.object({
+  accountId: z.string().uuid(),
+  statementDate: DateStringSchema,
+  statementBalance: MoneyStringSchema,
+  clearedBalance: MoneyStringSchema,
+  transactionIds: z.array(z.string().uuid()).default([]),
+});
+
 export type CategoryCreateInput = z.infer<typeof CategoryCreateSchema>;
 export type CategoryUpdateInput = z.infer<typeof CategoryUpdateSchema>;
 export type TagCreateInput = z.infer<typeof TagCreateSchema>;
 export type MerchantCreateInput = z.infer<typeof MerchantCreateSchema>;
+export type RuleCreateInput = z.infer<typeof RuleCreateSchema>;
+export type RuleUpdateInput = z.infer<typeof RuleUpdateSchema>;
+export type ReconciliationCreateInput = z.infer<typeof ReconciliationCreateSchema>;
+

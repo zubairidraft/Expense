@@ -7,6 +7,7 @@ import { WorkspaceProvider } from './context/WorkspaceContext'
 import { AccountProvider } from './context/AccountContext'
 import { CategoryProvider } from './context/CategoryContext'
 import { TransactionProvider } from './context/TransactionContext'
+import { RuleProvider } from './context/RuleContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -15,7 +16,9 @@ createRoot(document.getElementById('root')).render(
         <AccountProvider>
           <CategoryProvider>
             <TransactionProvider>
-              <App />
+              <RuleProvider>
+                <App />
+              </RuleProvider>
             </TransactionProvider>
           </CategoryProvider>
         </AccountProvider>
@@ -23,4 +26,5 @@ createRoot(document.getElementById('root')).render(
     </AuthProvider>
   </StrictMode>,
 )
+
 

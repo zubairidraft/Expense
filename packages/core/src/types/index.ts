@@ -213,3 +213,46 @@ export interface Merchant {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export type RuleField = 'payee_name' | 'notes' | 'amount' | 'type';
+export type RuleOperator = 'contains' | 'equals' | 'starts_with' | 'ends_with' | 'greater_than' | 'less_than';
+export type RuleActionType = 'set_category' | 'set_account' | 'add_tag' | 'mark_cleared';
+
+export interface RuleCondition {
+  field: RuleField;
+  operator: RuleOperator;
+  value: string;
+}
+
+export interface RuleAction {
+  type: RuleActionType;
+  value: string;
+}
+
+export interface Rule {
+  id: string;
+  workspaceId: string;
+  name: string;
+  priority: number;
+  active: boolean;
+  conditions: RuleCondition[];
+  actions: RuleAction[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface StatementReconciliation {
+  id: string;
+  workspaceId: string;
+  accountId: string;
+  statementDate: string;
+  statementBalance: string;
+  clearedBalance: string;
+  difference: string;
+  status: 'in_progress' | 'completed';
+  reconciledTransactionIds: string[];
+  reconciledBy?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

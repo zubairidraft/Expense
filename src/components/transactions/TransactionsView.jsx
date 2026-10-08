@@ -6,7 +6,11 @@ import MoneyDisplay from '../ui/MoneyDisplay';
 import StatCard from '../ui/StatCard';
 import TransactionDrawer from './TransactionDrawer';
 
-export default function TransactionsView({ onOpenCreateTransaction }) {
+export default function TransactionsView({
+  onOpenCreateTransaction,
+  onOpenReconcile,
+  onOpenRules,
+}) {
   const { transactions, totalIncome, totalExpense, deleteTransaction } = useTransactions();
   const { accounts } = useAccounts();
   const { currentWorkspace } = useWorkspace();
@@ -130,12 +134,38 @@ export default function TransactionsView({ onOpenCreateTransaction }) {
             </button>
           </div>
 
-          <button
-            onClick={onOpenCreateTransaction}
-            className="submit-btn primary-glow add-acc-btn"
-          >
-            <span>➕</span> Book Transaction
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            {onOpenRules && (
+              <button
+                type="button"
+                onClick={onOpenRules}
+                className="secondary-btn"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 0.85rem' }}
+                title="Automated pattern-matching rules"
+              >
+                <span>⚡</span> Rules
+              </button>
+            )}
+
+            {onOpenReconcile && (
+              <button
+                type="button"
+                onClick={onOpenReconcile}
+                className="secondary-btn"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 0.85rem' }}
+                title="Bank statement reconciliation & balance lock"
+              >
+                <span>🔒</span> Reconcile
+              </button>
+            )}
+
+            <button
+              onClick={onOpenCreateTransaction}
+              className="submit-btn primary-glow add-acc-btn"
+            >
+              <span>➕</span> Book Transaction
+            </button>
+          </div>
         </div>
 
         {/* Detailed Dropdown Filters & Search */}

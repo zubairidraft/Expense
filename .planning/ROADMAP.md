@@ -50,8 +50,7 @@ Delivery Model: Vertical Slices (Database + Server Logic + UI + Tests together p
   - Sub-10 second entry from any page
   - IndexedDB offline outbox queue with idempotency sync
 
-- [ ] **Phase 9: Rules Engine & Reconciliation**
-
+- [x] **Phase 9: Rules Engine & Reconciliation**
   - Deterministic auto-categorization rules (run before AI)
   - Statement reconciliation flow, lock reconciled items
 

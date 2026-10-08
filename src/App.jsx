@@ -24,6 +24,8 @@ import CreateTagModal from './components/categories/CreateTagModal'
 import TransactionsView from './components/transactions/TransactionsView'
 import CreateTransactionModal from './components/transactions/CreateTransactionModal'
 import QuickAddModal from './components/transactions/QuickAddModal'
+import ReconciliationModal from './components/reconciliation/ReconciliationModal'
+import RulesModal from './components/rules/RulesModal'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -121,6 +123,8 @@ export default function App() {
   const [createTagModalOpen, setCreateTagModalOpen] = useState(false)
   const [createTxModalOpen, setCreateTxModalOpen] = useState(false)
   const [quickAddModalOpen, setQuickAddModalOpen] = useState(false)
+  const [reconcileModalOpen, setReconcileModalOpen] = useState(false)
+  const [rulesModalOpen, setRulesModalOpen] = useState(false)
 
   // Global Keyboard Shortcuts (Ctrl+K or Q or / for Quick Add)
   useEffect(() => {
@@ -508,6 +512,8 @@ export default function App() {
           {activeTab === 'transactions' && (
             <TransactionsView
               onOpenCreateTransaction={() => setCreateTxModalOpen(true)}
+              onOpenReconcile={() => setReconcileModalOpen(true)}
+              onOpenRules={() => setRulesModalOpen(true)}
             />
           )}
 
@@ -649,6 +655,18 @@ export default function App() {
       <QuickAddModal
         isOpen={quickAddModalOpen}
         onClose={() => setQuickAddModalOpen(false)}
+      />
+
+      {/* Statement Reconciliation Modal */}
+      <ReconciliationModal
+        isOpen={reconcileModalOpen}
+        onClose={() => setReconcileModalOpen(false)}
+      />
+
+      {/* Auto-Categorization Rules Engine Modal */}
+      <RulesModal
+        isOpen={rulesModalOpen}
+        onClose={() => setRulesModalOpen(false)}
       />
     </div>
   )
