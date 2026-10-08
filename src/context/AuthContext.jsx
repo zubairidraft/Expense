@@ -94,6 +94,13 @@ export function AuthProvider({ children }) {
     };
   }, [loadProfile]);
 
+  // Synchronize document direction for RTL locales (Arabic & Urdu)
+  useEffect(() => {
+    const isRtl = profile.locale === 'ar-AE' || profile.locale === 'ur-PK';
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+    document.documentElement.lang = profile.locale || 'en-US';
+  }, [profile.locale]);
+
   const signUp = async ({ email, password, fullName, defaultCurrency = 'USD' }) => {
     setAuthError(null);
     try {

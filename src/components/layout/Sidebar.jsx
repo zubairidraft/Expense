@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { id: 'shared', label: 'Shared & Debts', icon: '🤝' },
   { id: 'business', label: 'Business & Projects', icon: '💼' },
   { id: 'analytics', label: 'Visual Analytics', icon: '📈' },
+  { id: 'reports', label: 'Reports & Tax', icon: '📋' },
   { id: 'settings', label: 'Preferences', icon: '⚙️' },
 ];
 

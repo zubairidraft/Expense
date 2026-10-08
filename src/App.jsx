@@ -44,6 +44,10 @@ import CreateProjectModal from './components/business/CreateProjectModal'
 import CreateCostCenterModal from './components/business/CreateCostCenterModal'
 import CurrencyConverterModal from './components/currency/CurrencyConverterModal'
 import ImportExportModal from './components/imports/ImportExportModal'
+import AnalyticsView from './components/analytics/AnalyticsView'
+import ReportsView from './components/reports/ReportsView'
+import ZakatCalculatorModal from './components/regional/ZakatCalculatorModal'
+import NotificationCenterModal from './components/notifications/NotificationCenterModal'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -161,6 +165,8 @@ export default function App() {
   const [createCostCenterModalOpen, setCreateCostCenterModalOpen] = useState(false)
   const [currencyConverterModalOpen, setCurrencyConverterModalOpen] = useState(false)
   const [importExportModalOpen, setImportExportModalOpen] = useState(false)
+  const [zakatModalOpen, setZakatModalOpen] = useState(false)
+  const [notificationsModalOpen, setNotificationsModalOpen] = useState(false)
 
   // Global Keyboard Shortcuts (Ctrl+K or Q or / for Quick Add)
   useEffect(() => {
@@ -295,6 +301,7 @@ export default function App() {
             onOpenQuickAdd={() => setQuickAddModalOpen(true)}
             onOpenCurrencyConverter={() => setCurrencyConverterModalOpen(true)}
             onOpenImportExport={() => setImportExportModalOpen(true)}
+            onOpenNotifications={() => setNotificationsModalOpen(true)}
           />
 
 
@@ -616,27 +623,13 @@ export default function App() {
           )}
 
           {activeTab === 'analytics' && (
-            <section className="panel" aria-label="Visual Analytics">
-              <h2 className="panel-title">
-                <span>📈</span> Spending & Savings Analytics
-              </h2>
-              <div className="stats-grid" style={{ marginTop: '1.25rem' }}>
-                <div className="stat-card">
-                  <span className="stat-label">Avg Daily Spend</span>
-                  <div className="stat-value">
-                    <MoneyDisplay amount={totalExpense / 7} currencyCode={currencyCode} numberFormat={numberFormat} />
-                  </div>
-                  <span className="stat-meta">Past 7 days trajectory</span>
-                </div>
-                <div className="stat-card">
-                  <span className="stat-label">Net Surplus</span>
-                  <div className="stat-value income">
-                    <MoneyDisplay amount={balance} currencyCode={currencyCode} numberFormat={numberFormat} type="income" />
-                  </div>
-                  <span className="stat-meta">Available to allocate to savings</span>
-                </div>
-              </div>
-            </section>
+            <AnalyticsView
+              onOpenZakatModal={() => setZakatModalOpen(true)}
+            />
+          )}
+
+          {activeTab === 'reports' && (
+            <ReportsView />
           )}
         </div>
       </div>
@@ -821,6 +814,17 @@ export default function App() {
           setReceiptDraftData(draft);
           setCreateTxModalOpen(true);
         }}
+      />
+
+      {/* Stage F Modals */}
+      <ZakatCalculatorModal
+        isOpen={zakatModalOpen}
+        onClose={() => setZakatModalOpen(false)}
+      />
+
+      <NotificationCenterModal
+        isOpen={notificationsModalOpen}
+        onClose={() => setNotificationsModalOpen(false)}
       />
     </div>
   )

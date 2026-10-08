@@ -95,15 +95,15 @@ Delivery Model: Vertical Slices (Database + Server Logic + UI + Tests together p
 ---
 
 ### STAGE F — INSIGHT
-- [ ] **Phase 18: Analytics Data Layer**
+- [x] **Phase 18: Analytics Data Layer**
   - `security_invoker = true` views for spending, net worth, cash flow
-- [ ] **Phase 19: Smart Analytics & Forecasting**
+- [x] **Phase 19: Smart Analytics & Forecasting**
   - Anomaly detection, spending velocity, cash flow forecasting
-- [ ] **Phase 20: Reports**
+- [x] **Phase 20: Reports**
   - PDF/print reports, tax summaries, business expense statements
-- [ ] **Phase 21: Notifications**
+- [x] **Phase 21: Notifications**
   - In-app notification center, budget alerts, debt reminders
-- [ ] **Phase 22: Regional Features**
+- [x] **Phase 22: Regional Features**
   - Zakat calculator (assets, liabilities, nisab, hawl)
   - Urdu & Arabic RTL UI, lakh/crore number formatting
 

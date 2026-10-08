@@ -13,3 +13,8 @@ export * from './business/businessCalculators.js';
 export * from './currency/currencyConverter.js';
 export * from './parsers/bankSmsParser.js';
 export * from './parsers/csvParser.js';
+export * from './analytics/anomalyDetector.js';
+export * from './analytics/velocityAndForecast.js';
+export * from './reports/reportGenerators.js';
+export * from './regional/zakatCalculator.js';
+export * from './regional/numberFormatters.js';

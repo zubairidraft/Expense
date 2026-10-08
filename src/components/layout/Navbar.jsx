@@ -1,4 +1,5 @@
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { CURRENCY_REGISTRY } from '../../lib/formatters';
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher';
 import SyncStatusBadge from '../ui/SyncStatusBadge';
@@ -11,8 +12,10 @@ export default function Navbar({
   onOpenQuickAdd,
   onOpenCurrencyConverter,
   onOpenImportExport,
+  onOpenNotifications,
 }) {
   const { user, profile } = useAuth();
+  const { unreadCount } = useNotifications();
   const currencyInfo = CURRENCY_REGISTRY[profile.defaultCurrency] || { symbol: profile.defaultCurrency };
 
   const initials = profile.fullName
@@ -58,6 +61,32 @@ export default function Navbar({
         >
           <span>📲</span>
           <span>Import / Export</span>
+        </button>
+
+        {/* Notifications & Alerts Bell */}
+        <button
+          className="btn-secondary"
+          style={{ padding: '0.4rem 0.65rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.35rem', position: 'relative' }}
+          onClick={onOpenNotifications}
+          title="In-App Notification Center & Alerts"
+        >
+          <span>🔔</span>
+          <span>Alerts</span>
+          {unreadCount > 0 && (
+            <span
+              style={{
+                background: '#ef4444',
+                color: '#fff',
+                borderRadius: '8px',
+                padding: '0.1rem 0.35rem',
+                fontSize: '0.7rem',
+                fontWeight: '700',
+                marginLeft: '0.2rem',
+              }}
+            >
+              {unreadCount}
+            </span>
+          )}
         </button>
 
         {/* Global Quick Add Button */}

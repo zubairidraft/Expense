@@ -6,9 +6,10 @@
 - **Stage C: Planning Features (Phases 10–13) — 100% Completed & Verified**
 - **Stage D: People & Obligations (Phases 14–15) — 100% Completed & Verified**
 - **Stage E: Data In & Out (Phases 16–17) — 100% Completed & Verified**
+- **Stage F: Insight (Phases 18–22) — 100% Completed & Verified**
 
-**Current Milestone:** Stage F — Insight  
-**Next Phase:** **Phase 18 — Analytics Data Layer** (`security_invoker = true` views for spending, net worth, cash flow)
+**Current Milestone:** Stage G — Intelligence, Business & Launch  
+**Next Phase:** **Phase 23 — AI Layer** (Provider abstraction, transaction drafting, controlled analytics tools)
 
 ---
 
@@ -31,6 +32,35 @@
 - **Phase 15 — Business & Household Modules (Complete & Verified)**
 - **Phase 16 — Multi-Currency Services (Complete & Verified)**
 - **Phase 17 — Import & Export (Complete & Verified)**
+- **Phase 18 — Analytics Data Layer (Complete & Verified)**
+- **Phase 19 — Smart Analytics & Forecasting (Complete & Verified)**
+- **Phase 20 — Reports & Statements (Complete & Verified)**
+- **Phase 21 — In-App Notification Center & Alerts (Complete & Verified)**
+- **Phase 22 — Regional Features, Zakat & RTL (Complete & Verified)**
+
+---
+
+### Stage F Deliverables Verified:
+- [x] Remote Database & Migrations:
+  - `20261008000016_analytics_views.sql`: `v_monthly_spending_by_category`, `v_cash_flow_monthly`, `v_account_balances_current`, `v_net_worth_snapshot` with `WITH (security_invoker = true)` respecting workspace RLS.
+  - `20261008000017_notifications.sql`: `public.notifications` table with RLS, read status indexes, and helper RPCs `mark_notification_read` and `mark_all_notifications_read`.
+- [x] Core Domain Package (`@universal-expense/core`):
+  - `anomalyDetector.ts`: Outlier and category spending spike detection algorithm based on historical median/mean and deviation multipliers.
+  - `velocityAndForecast.ts`: Spending burn velocity, projected month-end spend, safe daily remaining budget, and multi-horizon cash flow projection simulation (30/60/90 days).
+  - `reportGenerators.ts`: Financial P&L statements, savings rate calculation, category breakdown shares, largest expenditures ranking, and tax & VAT schedules (input/output VAT, billable & reimbursable expenses).
+  - `zakatCalculator.ts`: Comprehensive Islamic Zakat calculator compliant with silver (612.36g) and gold (87.48g) Nisab standards, assets vs debt liability deductions, hawl eligibility checks, and 2.5% rate calculation.
+  - `numberFormatters.ts`: South Asian grouping (`12,34,567.89`) and international formatting utilities.
+  - Full test suite: 16 test files, 95/95 unit tests passing.
+- [x] Frontend State & UI Modules:
+  - `AnalyticsContext.jsx`: Real-time net worth calculation, database view hydration, live spending burn rate, anomaly radar, and forward cash flow forecasting.
+  - `NotificationContext.jsx`: In-app notification store with persistent Supabase notifications, live unread counter, and synthetic budget warning & bill due date threshold alerts.
+  - `AnalyticsView.jsx`: Interactive dashboard with Net Worth, Burn Rate, Safe Daily Budget, Forecast Health stat cards, monthly cash flow table, spending anomalies radar, and 30/60/90-day simulation curve.
+  - `ReportsView.jsx`: Print-ready letterhead reporting view with preset ranges (This Month, Last Month, YTD, Custom), P&L executive metrics, category ranking, top transactions, and formal tax/VAT filing summary.
+  - `ZakatCalculatorModal.jsx`: Interactive Zakat calculator with live metal price presets (USD, PKR, AED, SAR, EUR, GBP), Nisab threshold calculation, and automatic pre-fill from liquid bank balances and borrowed liabilities.
+  - `NotificationCenterModal.jsx`: Modal notification drawer with unread badges, category filtering (Budgets, Bills & Debts), and single/mark-all-read operations.
+  - RTL synchronization: Automatically sets `dir="rtl"` and language attributes for Arabic (`ar-AE`) and Urdu (`ur-PK`) locales in `AuthContext.jsx`.
+  - Wired into `App.jsx`, `Navbar.jsx`, `Sidebar.jsx`, and `main.jsx`.
+  - Production build clean: `npm run build` passed with 0 errors.
 
 ---
 
