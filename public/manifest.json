@@ -1,0 +1,17 @@
+{
+  "name": "Universal Expense Tracker Pro",
+  "short_name": "ExpensePro",
+  "description": "Multi-currency financial ledger, smart budgeting, and expense tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0d14",
+  "theme_color": "#0a0d14",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

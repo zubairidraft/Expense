@@ -1,13 +1,18 @@
 import { useState, useMemo } from 'react'
 import { Agentation } from 'agentation'
 import { useAuth } from './context/AuthContext'
-import { formatMoney, CURRENCY_REGISTRY } from './lib/formatters'
+import { useWorkspace } from './context/WorkspaceContext'
+import { CURRENCY_REGISTRY } from './lib/formatters'
 import Navbar from './components/layout/Navbar'
+import Sidebar from './components/layout/Sidebar'
+import MobileNav from './components/layout/MobileNav'
 import AuthModal from './components/auth/AuthModal'
 import ProfileSettingsModal from './components/profile/ProfileSettingsModal'
-import { useWorkspace } from './context/WorkspaceContext'
 import CreateWorkspaceModal from './components/workspace/CreateWorkspaceModal'
 import WorkspaceMembersModal from './components/workspace/WorkspaceMembersModal'
+import MoneyInput from './components/ui/MoneyInput'
+import MoneyDisplay from './components/ui/MoneyDisplay'
+import StatCard from './components/ui/StatCard'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -79,11 +84,18 @@ const CATEGORIES = {
 export default function App() {
   const { profile } = useAuth()
   const { currentWorkspace } = useWorkspace()
+
+  // App Shell Navigation State
+  const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'transactions' | 'accounts' | 'budgets' | 'analytics' | 'settings'
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  // Modals State
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [settingsModalOpen, setSettingsModalOpen] = useState(false)
   const [createWsModalOpen, setCreateWsModalOpen] = useState(false)
   const [membersWsModalOpen, setMembersWsModalOpen] = useState(false)
 
+  // Ledger State
   const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS)
   const [type, setType] = useState('expense')
   const [title, setTitle] = useState('')
@@ -165,263 +177,445 @@ export default function App() {
     setTransactions(transactions.filter((t) => t.id !== id))
   }
 
+  const handleTabChange = (tabId) => {
+    if (tabId === 'settings') {
+      setSettingsModalOpen(true)
+    } else {
+      setActiveTab(tabId)
+    }
+  }
+
   return (
-    <div className="app-container">
+    <div className="app-shell">
       {/* Visual Annotation Toolbar for AI Agents */}
       <Agentation endpoint="http://localhost:4747" appName="Expense Tracking" />
 
-      {/* Top Header & Auth Navigation */}
-      <Navbar
-        onOpenAuth={() => setAuthModalOpen(true)}
-        onOpenSettings={() => setSettingsModalOpen(true)}
-        onOpenCreateWorkspace={() => setCreateWsModalOpen(true)}
-        onOpenWorkspaceMembers={() => setMembersWsModalOpen(true)}
+      {/* Persistent Left Sidebar Navigation */}
+      <Sidebar
+        activeTab={activeTab}
+        onSelectTab={handleTabChange}
+        onOpenSettings={() => setMembersWsModalOpen(true)}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      {/* Overview Metric Cards */}
-      <section className="stats-grid" aria-label="Financial Overview">
-        <div className="stat-card balance">
-          <div className="stat-header">
-            <span className="stat-label">Net Balance</span>
-            <span className="stat-icon">🏦</span>
-          </div>
-          <div className="stat-value">
-            {formatMoney(balance, currencyCode, numberFormat)}
-          </div>
-          <div className="stat-meta">
-            Currency: {currencyCode} ({currencyInfo.symbol}) ·{' '}
-            {numberFormat === 'lakh' ? 'Lakh/Crore' : 'International'}
-          </div>
-        </div>
+      {/* Main App Container */}
+      <div className="app-main-content">
+        <div className="app-container">
+          {/* Top Header & Workspace Switcher */}
+          <Navbar
+            onOpenAuth={() => setAuthModalOpen(true)}
+            onOpenSettings={() => setSettingsModalOpen(true)}
+            onOpenCreateWorkspace={() => setCreateWsModalOpen(true)}
+            onOpenWorkspaceMembers={() => setMembersWsModalOpen(true)}
+          />
 
-        <div className="stat-card">
-          <div className="stat-header">
-            <span className="stat-label">Total Income</span>
-            <span className="stat-icon">📈</span>
-          </div>
-          <div className="stat-value income">
-            +{formatMoney(totalIncome, currencyCode, numberFormat)}
-          </div>
-          <div className="stat-meta">
-            {transactions.filter((t) => t.type === 'income').length} income records
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-header">
-            <span className="stat-label">Total Expenses</span>
-            <span className="stat-icon">📉</span>
-          </div>
-          <div className="stat-value expense">
-            -{formatMoney(totalExpense, currencyCode, numberFormat)}
-          </div>
-          <div className="stat-meta">
-            {transactions.filter((t) => t.type === 'expense').length} expense records
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-header">
-            <span className="stat-label">Savings Rate</span>
-            <span className="stat-icon">🎯</span>
-          </div>
-          <div className="stat-value">{savingsRate}%</div>
-          <div className="stat-meta">
-            {savingsRate >= 20
-              ? 'Optimal savings buffer'
-              : 'Consider reviewing budget'}
-          </div>
-        </div>
-      </section>
-
-      {/* Main Grid: Add Transaction Form & History */}
-      <div className="dashboard-layout">
-        {/* Left Column: New Transaction Form & Category Allocation */}
-        <div
-          style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}
-        >
-          <section className="panel" aria-label="Add New Transaction">
-            <h2 className="panel-title">
-              <span>⚡</span> Add Transaction
-            </h2>
-
-            <form onSubmit={handleAddTransaction}>
-              <div className="type-selector">
-                <button
-                  type="button"
-                  className={`type-btn expense ${type === 'expense' ? 'active' : ''}`}
-                  onClick={() => {
-                    setType('expense')
-                    setCategory(CATEGORIES.expense[0].label)
-                  }}
-                >
-                  📉 Expense
-                </button>
-                <button
-                  type="button"
-                  className={`type-btn income ${type === 'income' ? 'active' : ''}`}
-                  onClick={() => {
-                    setType('income')
-                    setCategory(CATEGORIES.income[0].label)
-                  }}
-                >
-                  📈 Income
-                </button>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="tx-title">
-                  Title / Merchant
-                </label>
-                <input
-                  id="tx-title"
-                  className="input-field"
-                  placeholder="e.g. AWS Hosting, Groceries, Client Retainer"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
+          {/* Overview Metrics Cards */}
+          <section className="stats-grid" aria-label="Financial Overview">
+            <StatCard
+              title="Net Balance"
+              icon="🏦"
+              variant="balance"
+              value={
+                <MoneyDisplay
+                  amount={balance}
+                  currencyCode={currencyCode}
+                  numberFormat={numberFormat}
                 />
-              </div>
+              }
+              meta={`Workspace: ${currentWorkspace?.name || 'Personal'} (${currencyCode})`}
+            />
 
-              <div className="form-group">
-                <label className="form-label" htmlFor="tx-amount">
-                  Amount ({currencyInfo.symbol})
-                </label>
-                <input
-                  id="tx-amount"
-                  className="input-field"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
+            <StatCard
+              title="Total Income"
+              icon="📈"
+              variant="income"
+              value={
+                <MoneyDisplay
+                  amount={totalIncome}
+                  currencyCode={currencyCode}
+                  numberFormat={numberFormat}
+                  type="income"
+                  showSign
                 />
+              }
+              meta={`${transactions.filter((t) => t.type === 'income').length} records booked`}
+            />
+
+            <StatCard
+              title="Total Expenses"
+              icon="📉"
+              variant="expense"
+              value={
+                <MoneyDisplay
+                  amount={totalExpense}
+                  currencyCode={currencyCode}
+                  numberFormat={numberFormat}
+                  type="expense"
+                  showSign
+                />
+              }
+              meta={`${transactions.filter((t) => t.type === 'expense').length} records booked`}
+            />
+
+            <StatCard
+              title="Savings Rate"
+              icon="🎯"
+              variant="default"
+              value={`${savingsRate}%`}
+              meta={savingsRate >= 20 ? 'Optimal savings buffer' : 'Consider reviewing budget'}
+            />
+          </section>
+
+          {/* View Routing Based on Active Tab */}
+          {activeTab === 'overview' && (
+            <div className="dashboard-layout">
+              {/* Left Column: New Transaction Form & Allocation */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+                <section className="panel" aria-label="Add New Transaction">
+                  <h2 className="panel-title">
+                    <span>⚡</span> Add Transaction
+                  </h2>
+
+                  <form onSubmit={handleAddTransaction}>
+                    <div className="type-selector">
+                      <button
+                        type="button"
+                        className={`type-btn expense ${type === 'expense' ? 'active' : ''}`}
+                        onClick={() => {
+                          setType('expense')
+                          setCategory(CATEGORIES.expense[0].label)
+                        }}
+                      >
+                        📉 Expense
+                      </button>
+                      <button
+                        type="button"
+                        className={`type-btn income ${type === 'income' ? 'active' : ''}`}
+                        onClick={() => {
+                          setType('income')
+                          setCategory(CATEGORIES.income[0].label)
+                        }}
+                      >
+                        📈 Income
+                      </button>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="tx-title">
+                        Title / Merchant
+                      </label>
+                      <input
+                        id="tx-title"
+                        className="input-field"
+                        placeholder="e.g. AWS Hosting, Groceries, Retainer"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <MoneyInput
+                        id="tx-amount"
+                        label={`Amount (${currencyInfo.symbol})`}
+                        value={amount}
+                        onChange={setAmount}
+                        currencyCode={currencyCode}
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="tx-category">
+                        Category
+                      </label>
+                      <select
+                        id="tx-category"
+                        className="select-field"
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                      >
+                        {CATEGORIES[type].map((c) => (
+                          <option key={c.label} value={c.label}>
+                            {c.icon} {c.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <button type="submit" className="submit-btn primary-glow">
+                      Add {type === 'expense' ? 'Expense' : 'Income'}
+                    </button>
+                  </form>
+                </section>
+
+                {/* Expense Category Breakdown */}
+                {categoryBreakdown.length > 0 && (
+                  <section className="panel" aria-label="Expense Breakdown">
+                    <h2 className="panel-title">
+                      <span>📊</span> Expense Distribution
+                    </h2>
+                    <div className="category-bars">
+                      {categoryBreakdown.map((item) => (
+                        <div key={item.name} className="cat-bar-item">
+                          <div className="cat-bar-header">
+                            <span>{item.name}</span>
+                            <span>
+                              <MoneyDisplay
+                                amount={item.amount}
+                                currencyCode={currencyCode}
+                                numberFormat={numberFormat}
+                              />{' '}
+                              ({item.percent}%)
+                            </span>
+                          </div>
+                          <div className="cat-bar-track">
+                            <div
+                              className="cat-bar-fill"
+                              style={{
+                                width: `${item.percent}%`,
+                                background: 'var(--accent-gradient)',
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
               </div>
 
-              <div className="form-group">
-                <label className="form-label" htmlFor="tx-category">
-                  Category
-                </label>
+              {/* Right Column: Transaction History */}
+              <section className="panel" aria-label="Transaction History">
+                <h2 className="panel-title">
+                  <span>🧾</span> Recent Activity
+                </h2>
+
+                <div className="filter-bar">
+                  <input
+                    type="text"
+                    className="input-field filter-input"
+                    placeholder="Search transactions..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <select
+                    className="select-field filter-select"
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                  >
+                    <option value="all">All Categories</option>
+                    {[...CATEGORIES.expense, ...CATEGORIES.income].map((cat) => (
+                      <option key={cat.label} value={cat.label}>
+                        {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="tx-list">
+                  {filteredTransactions.length === 0 ? (
+                    <div className="empty-state">
+                      <p>No matching transactions found.</p>
+                    </div>
+                  ) : (
+                    filteredTransactions.map((tx) => (
+                      <div key={tx.id} className="tx-item">
+                        <div className="tx-left">
+                          <div className="tx-category-icon">{tx.icon}</div>
+                          <div>
+                            <div className="tx-title">{tx.title}</div>
+                            <div className="tx-sub">
+                              {tx.category} • {tx.date}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="tx-right">
+                          <MoneyDisplay
+                            amount={tx.amount}
+                            currencyCode={currencyCode}
+                            numberFormat={numberFormat}
+                            type={tx.type}
+                            showSign
+                            className="tx-amount"
+                          />
+                          <button
+                            type="button"
+                            className="tx-delete-btn"
+                            onClick={() => handleDelete(tx.id)}
+                            title="Delete record"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeTab === 'transactions' && (
+            <section className="panel" aria-label="Full Ledger">
+              <h2 className="panel-title">
+                <span>🧾</span> Master Ledger Activity
+              </h2>
+              <div className="filter-bar" style={{ marginBottom: '1.5rem' }}>
+                <input
+                  type="text"
+                  className="input-field filter-input"
+                  placeholder="Filter by description or payee..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
                 <select
-                  id="tx-category"
-                  className="select-field"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  className="select-field filter-select"
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
                 >
-                  {CATEGORIES[type].map((c) => (
-                    <option key={c.label} value={c.label}>
-                      {c.icon} {c.label}
+                  <option value="all">All Categories</option>
+                  {[...CATEGORIES.expense, ...CATEGORIES.income].map((cat) => (
+                    <option key={cat.label} value={cat.label}>
+                      {cat.label}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <button type="submit" className="submit-btn primary-glow">
-                Add {type === 'expense' ? 'Expense' : 'Income'}
-              </button>
-            </form>
-          </section>
-
-          {/* Expense Category Breakdown */}
-          {categoryBreakdown.length > 0 && (
-            <section className="panel" aria-label="Expense Breakdown">
-              <h2 className="panel-title">
-                <span>📊</span> Expense Distribution
-              </h2>
-              <div className="category-bars">
-                {categoryBreakdown.map((item) => (
-                  <div key={item.name} className="cat-bar-item">
-                    <div className="cat-bar-header">
-                      <span>{item.name}</span>
-                      <span>
-                        {formatMoney(item.amount, currencyCode, numberFormat)} (
-                        {item.percent}%)
-                      </span>
+              <div className="tx-list">
+                {filteredTransactions.map((tx) => (
+                  <div key={tx.id} className="tx-item">
+                    <div className="tx-left">
+                      <div className="tx-category-icon">{tx.icon}</div>
+                      <div>
+                        <div className="tx-title">{tx.title}</div>
+                        <div className="tx-sub">{tx.category} • {tx.date}</div>
+                      </div>
                     </div>
-                    <div className="cat-bar-track">
-                      <div
-                        className="cat-bar-fill"
-                        style={{
-                          width: `${item.percent}%`,
-                          background: 'var(--accent-gradient)',
-                        }}
+                    <div className="tx-right">
+                      <MoneyDisplay
+                        amount={tx.amount}
+                        currencyCode={currencyCode}
+                        numberFormat={numberFormat}
+                        type={tx.type}
+                        showSign
+                        className="tx-amount"
                       />
+                      <button
+                        type="button"
+                        className="tx-delete-btn"
+                        onClick={() => handleDelete(tx.id)}
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             </section>
           )}
-        </div>
 
-        {/* Right Column: Transaction History */}
-        <section className="panel" aria-label="Transaction History">
-          <h2 className="panel-title">
-            <span>🧾</span> Recent Activity
-          </h2>
-
-          <div className="filter-bar">
-            <input
-              type="text"
-              className="input-field filter-input"
-              placeholder="Search transactions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <select
-              className="select-field filter-select"
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-            >
-              <option value="all">All Categories</option>
-              {[...CATEGORIES.expense, ...CATEGORIES.income].map((cat) => (
-                <option key={cat.label} value={cat.label}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="tx-list">
-            {filteredTransactions.length === 0 ? (
-              <div className="empty-state">
-                <p>No matching transactions found.</p>
-              </div>
-            ) : (
-              filteredTransactions.map((tx) => (
-                <div key={tx.id} className="tx-item">
-                  <div className="tx-left">
-                    <div className="tx-category-icon">{tx.icon}</div>
-                    <div>
-                      <div className="tx-title">{tx.title}</div>
-                      <div className="tx-sub">
-                        {tx.category} • {tx.date}
-                      </div>
-                    </div>
+          {activeTab === 'accounts' && (
+            <section className="panel" aria-label="Accounts Vault">
+              <h2 className="panel-title">
+                <span>💳</span> Accounts & Vaults
+              </h2>
+              <div className="stats-grid" style={{ marginTop: '1.25rem' }}>
+                <div className="stat-card">
+                  <span className="stat-label">Main Checking (Bank)</span>
+                  <div className="stat-value">
+                    <MoneyDisplay amount={2850.5} currencyCode={currencyCode} numberFormat={numberFormat} />
                   </div>
+                  <span className="stat-meta">Asset · Primary Account</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-label">Physical Cash Vault</span>
+                  <div className="stat-value">
+                    <MoneyDisplay amount={480.0} currencyCode={currencyCode} numberFormat={numberFormat} />
+                  </div>
+                  <span className="stat-meta">Asset · Petty Cash</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-label">Corporate Credit Card</span>
+                  <div className="stat-value expense">
+                    <MoneyDisplay amount={145.5} currencyCode={currencyCode} numberFormat={numberFormat} type="expense" />
+                  </div>
+                  <span className="stat-meta">Liability · Due next cycle</span>
+                </div>
+              </div>
+            </section>
+          )}
 
-                  <div className="tx-right">
-                    <span className={`tx-amount ${tx.type}`}>
-                      {tx.type === 'income' ? '+' : '-'}
-                      {formatMoney(tx.amount, currencyCode, numberFormat)}
-                    </span>
-                    <button
-                      type="button"
-                      className="tx-delete-btn"
-                      onClick={() => handleDelete(tx.id)}
-                      title="Delete record"
-                    >
-                      🗑️
-                    </button>
+          {activeTab === 'budgets' && (
+            <section className="panel" aria-label="Budget Limits">
+              <h2 className="panel-title">
+                <span>🎯</span> Category Budgets & Targets
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                Limit-based envelopes configured for {currentWorkspace?.name || 'Workspace'}.
+              </p>
+              <div className="category-bars" style={{ marginTop: '1.5rem' }}>
+                <div className="cat-bar-item">
+                  <div className="cat-bar-header">
+                    <span>Software & Cloud Services</span>
+                    <span>$145.50 / $300.00 (48%)</span>
+                  </div>
+                  <div className="cat-bar-track">
+                    <div className="cat-bar-fill" style={{ width: '48%', background: '#6366f1' }} />
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        </section>
+                <div className="cat-bar-item">
+                  <div className="cat-bar-header">
+                    <span>Groceries & Supplies</span>
+                    <span>$88.20 / $500.00 (17%)</span>
+                  </div>
+                  <div className="cat-bar-track">
+                    <div className="cat-bar-fill" style={{ width: '17%', background: '#10b981' }} />
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'analytics' && (
+            <section className="panel" aria-label="Visual Analytics">
+              <h2 className="panel-title">
+                <span>📈</span> Spending & Savings Analytics
+              </h2>
+              <div className="stats-grid" style={{ marginTop: '1.25rem' }}>
+                <div className="stat-card">
+                  <span className="stat-label">Avg Daily Spend</span>
+                  <div className="stat-value">
+                    <MoneyDisplay amount={totalExpense / 7} currencyCode={currencyCode} numberFormat={numberFormat} />
+                  </div>
+                  <span className="stat-meta">Past 7 days trajectory</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-label">Net Surplus</span>
+                  <div className="stat-value income">
+                    <MoneyDisplay amount={balance} currencyCode={currencyCode} numberFormat={numberFormat} type="income" />
+                  </div>
+                  <span className="stat-meta">Available to allocate to savings</span>
+                </div>
+              </div>
+            </section>
+          )}
+        </div>
       </div>
+
+      {/* Mobile Bottom Navigation Bar (<900px) */}
+      <MobileNav
+        activeTab={activeTab}
+        onSelectTab={handleTabChange}
+        onOpenQuickAdd={() => {
+          setActiveTab('overview')
+          window.scrollTo({ top: 350, behavior: 'smooth' })
+        }}
+      />
 
       {/* Auth Modal */}
       <AuthModal

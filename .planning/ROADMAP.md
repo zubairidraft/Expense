@@ -22,7 +22,7 @@ Delivery Model: Vertical Slices (Database + Server Logic + UI + Tests together p
   - Roles (owner/admin/manager/member/viewer)
   - Workspace timezone, base currency, `month_start_day`
   - pgTAP cross-workspace isolation tests
-- [ ] **Phase 4: App Shell & Design System**
+- [x] **Phase 4: App Shell & Design System**
   - Tailwind CSS + shadcn/ui + Lucide
   - Responsive shell, sidebar, mobile bottom navigation, workspace switcher
   - Money input and money display components
