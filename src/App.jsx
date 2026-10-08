@@ -15,6 +15,10 @@ import MoneyDisplay from './components/ui/MoneyDisplay'
 import StatCard from './components/ui/StatCard'
 import AccountsView from './components/accounts/AccountsView'
 import CreateAccountModal from './components/accounts/CreateAccountModal'
+import CategoriesView from './components/categories/CategoriesView'
+import CreateCategoryModal from './components/categories/CreateCategoryModal'
+import CreateMerchantModal from './components/categories/CreateMerchantModal'
+import CreateTagModal from './components/categories/CreateTagModal'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -88,7 +92,7 @@ export default function App() {
   const { currentWorkspace } = useWorkspace()
 
   // App Shell Navigation State
-  const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'transactions' | 'accounts' | 'budgets' | 'analytics' | 'settings'
+  const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'transactions' | 'accounts' | 'categories' | 'budgets' | 'analytics' | 'settings'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   // Modals State
@@ -97,6 +101,9 @@ export default function App() {
   const [createWsModalOpen, setCreateWsModalOpen] = useState(false)
   const [membersWsModalOpen, setMembersWsModalOpen] = useState(false)
   const [createAccountModalOpen, setCreateAccountModalOpen] = useState(false)
+  const [createCategoryModalOpen, setCreateCategoryModalOpen] = useState(false)
+  const [createMerchantModalOpen, setCreateMerchantModalOpen] = useState(false)
+  const [createTagModalOpen, setCreateTagModalOpen] = useState(false)
 
   // Ledger State
   const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS)
@@ -528,6 +535,15 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'categories' && (
+            <CategoriesView
+              onOpenCreateCategory={() => setCreateCategoryModalOpen(true)}
+              onOpenCreateMerchant={() => setCreateMerchantModalOpen(true)}
+              onOpenCreateTag={() => setCreateTagModalOpen(true)}
+            />
+          )}
+
+
           {activeTab === 'budgets' && (
             <section className="panel" aria-label="Budget Limits">
               <h2 className="panel-title">
@@ -624,6 +640,25 @@ export default function App() {
         isOpen={createAccountModalOpen}
         onClose={() => setCreateAccountModalOpen(false)}
       />
+
+      {/* Create Category Modal */}
+      <CreateCategoryModal
+        isOpen={createCategoryModalOpen}
+        onClose={() => setCreateCategoryModalOpen(false)}
+      />
+
+      {/* Create Merchant Modal */}
+      <CreateMerchantModal
+        isOpen={createMerchantModalOpen}
+        onClose={() => setCreateMerchantModalOpen(false)}
+      />
+
+      {/* Create Tag Modal */}
+      <CreateTagModal
+        isOpen={createTagModalOpen}
+        onClose={() => setCreateTagModalOpen(false)}
+      />
     </div>
   )
 }
+

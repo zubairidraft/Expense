@@ -5,13 +5,16 @@ import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext'
 import { WorkspaceProvider } from './context/WorkspaceContext'
 import { AccountProvider } from './context/AccountContext'
+import { CategoryProvider } from './context/CategoryContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
       <WorkspaceProvider>
         <AccountProvider>
-          <App />
+          <CategoryProvider>
+            <App />
+          </CategoryProvider>
         </AccountProvider>
       </WorkspaceProvider>
     </AuthProvider>

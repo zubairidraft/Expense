@@ -168,3 +168,39 @@ export const AccountUpdateSchema = z.object({
 });
 
 export type AccountUpdateInput = z.infer<typeof AccountUpdateSchema>;
+
+export const CategoryCreateSchema = z.object({
+  name: z.string().min(1, 'Category name required').max(100),
+  kind: z.enum(['income', 'expense']),
+  isEssential: z.boolean().default(false),
+  icon: z.string().default('📦'),
+  color: z.string().default('#6366f1'),
+  parentId: z.string().uuid().nullable().optional(),
+});
+
+export const CategoryUpdateSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  kind: z.enum(['income', 'expense']).optional(),
+  isEssential: z.boolean().optional(),
+  icon: z.string().optional(),
+  color: z.string().optional(),
+  parentId: z.string().uuid().nullable().optional(),
+  archivedAt: z.string().nullable().optional(),
+});
+
+export const TagCreateSchema = z.object({
+  name: z.string().trim().min(1, 'Tag name required').max(50),
+  color: z.string().default('#8b5cf6'),
+});
+
+export const MerchantCreateSchema = z.object({
+  name: z.string().trim().min(1, 'Merchant name required').max(100),
+  aliases: z.array(z.string()).default([]),
+  defaultCategoryId: z.string().uuid().nullable().optional(),
+  logoUrl: z.string().url().nullable().optional(),
+});
+
+export type CategoryCreateInput = z.infer<typeof CategoryCreateSchema>;
+export type CategoryUpdateInput = z.infer<typeof CategoryUpdateSchema>;
+export type TagCreateInput = z.infer<typeof TagCreateSchema>;
+export type MerchantCreateInput = z.infer<typeof MerchantCreateSchema>;

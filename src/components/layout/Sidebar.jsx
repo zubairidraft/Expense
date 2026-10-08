@@ -4,10 +4,12 @@ const NAV_ITEMS = [
   { id: 'overview', label: 'Dashboard', icon: '📊' },
   { id: 'transactions', label: 'Ledger Activity', icon: '🧾' },
   { id: 'accounts', label: 'Accounts & Vaults', icon: '💳' },
+  { id: 'categories', label: 'Categories & Tags', icon: '🏷️' },
   { id: 'budgets', label: 'Budgets & Goals', icon: '🎯' },
   { id: 'analytics', label: 'Visual Analytics', icon: '📈' },
   { id: 'settings', label: 'Preferences', icon: '⚙️' },
 ];
+
 
 export default function Sidebar({
   activeTab,

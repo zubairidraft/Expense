@@ -35,10 +35,11 @@ Delivery Model: Vertical Slices (Database + Server Logic + UI + Tests together p
   - Bank, cash, card, savings, wallet, e-wallet, investment, loan, BNPL (Asset vs Liability nature)
   - Opening balance, opening date, currency, credit limit, visibility (shared/private)
   - Account list and detail view with running balances
-- [ ] **Phase 6: Categories, Tags & Merchants**
+- [x] **Phase 6: Categories, Tags & Merchants**
   - Hierarchical categories with essential/discretionary flags
   - Seed catalog (personal, household, business)
   - Merchants with aliases, tags
+
 - [ ] **Phase 7: Transaction Ledger**
   - Header + lines model; expense, income, transfer, refund, adjustment
   - Split transactions, cross-currency transfers, transfer fees

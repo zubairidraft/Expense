@@ -177,3 +177,39 @@ export interface Account {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export type CategoryKind = 'income' | 'expense';
+
+export interface Category {
+  id: string;
+  workspaceId?: string | null;
+  parentId?: string | null;
+  name: string;
+  kind: CategoryKind;
+  isEssential: boolean;
+  icon: string;
+  color: string;
+  systemKey?: string | null;
+  archivedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Tag {
+  id: string;
+  workspaceId: string;
+  name: string;
+  color: string;
+  createdAt?: string;
+}
+
+export interface Merchant {
+  id: string;
+  workspaceId: string;
+  name: string;
+  aliases: string[];
+  defaultCategoryId?: string | null;
+  logoUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
