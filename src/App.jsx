@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react'
 import { Agentation } from 'agentation'
 import { useAuth } from './context/AuthContext'
 import { useWorkspace } from './context/WorkspaceContext'
+import { useAccounts } from './context/AccountContext'
+import { useTransactions } from './context/TransactionContext'
 import { CURRENCY_REGISTRY } from './lib/formatters'
 import Navbar from './components/layout/Navbar'
 import Sidebar from './components/layout/Sidebar'
@@ -19,7 +21,10 @@ import CategoriesView from './components/categories/CategoriesView'
 import CreateCategoryModal from './components/categories/CreateCategoryModal'
 import CreateMerchantModal from './components/categories/CreateMerchantModal'
 import CreateTagModal from './components/categories/CreateTagModal'
+import TransactionsView from './components/transactions/TransactionsView'
+import CreateTransactionModal from './components/transactions/CreateTransactionModal'
 import './App.css'
+
 
 const INITIAL_TRANSACTIONS = [
   {
@@ -90,6 +95,16 @@ const CATEGORIES = {
 export default function App() {
   const { profile } = useAuth()
   const { currentWorkspace } = useWorkspace()
+  const { accounts } = useAccounts()
+  const {
+    transactions,
+    totalIncome,
+    totalExpense,
+    balance,
+    savingsRate,
+    addTransaction,
+    deleteTransaction,
+  } = useTransactions()
 
   // App Shell Navigation State
   const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'transactions' | 'accounts' | 'categories' | 'budgets' | 'analytics' | 'settings'
@@ -104,9 +119,9 @@ export default function App() {
   const [createCategoryModalOpen, setCreateCategoryModalOpen] = useState(false)
   const [createMerchantModalOpen, setCreateMerchantModalOpen] = useState(false)
   const [createTagModalOpen, setCreateTagModalOpen] = useState(false)
+  const [createTxModalOpen, setCreateTxModalOpen] = useState(false)
 
-  // Ledger State
-  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS)
+  // Ledger Quick Form State
   const [type, setType] = useState('expense')
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
@@ -118,31 +133,16 @@ export default function App() {
   const numberFormat = profile?.numberFormat || 'intl'
   const currencyInfo = CURRENCY_REGISTRY[currencyCode] || { symbol: currencyCode }
 
-  const totalIncome = useMemo(() => {
-    return transactions
-      .filter((t) => t.type === 'income')
-      .reduce((acc, curr) => acc + curr.amount, 0)
-  }, [transactions])
-
-  const totalExpense = useMemo(() => {
-    return transactions
-      .filter((t) => t.type === 'expense')
-      .reduce((acc, curr) => acc + curr.amount, 0)
-  }, [transactions])
-
-  const balance = totalIncome - totalExpense
-  const savingsRate =
-    totalIncome > 0
-      ? Math.round(((totalIncome - totalExpense) / totalIncome) * 100)
-      : 0
-
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
-      const matchesSearch = t.title
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase())
+      const q = searchQuery.toLowerCase()
+      const matchesSearch =
+        (t.payee_name || t.title || '').toLowerCase().includes(q) ||
+        (t.notes || '').toLowerCase().includes(q)
       const matchesCategory =
-        filterCategory === 'all' || t.category === filterCategory
+        filterCategory === 'all' ||
+        t.category === filterCategory ||
+        t.lines?.some((l) => l.category?.name === filterCategory)
       return matchesSearch && matchesCategory
     })
   }, [transactions, searchQuery, filterCategory])
@@ -151,7 +151,12 @@ export default function App() {
     const expenses = transactions.filter((t) => t.type === 'expense')
     const grouped = {}
     expenses.forEach((t) => {
-      grouped[t.category] = (grouped[t.category] || 0) + t.amount
+      const catName = t.lines?.[0]?.category?.name || t.category || 'General'
+      const lineAmt = (t.lines || []).reduce(
+        (acc, l) => acc + parseFloat(l.base_amount || l.amount || '0'),
+        t.amount || 0
+      )
+      grouped[catName] = (grouped[catName] || 0) + lineAmt
     })
     return Object.entries(grouped).map(([cat, val]) => ({
       name: cat,
@@ -160,28 +165,38 @@ export default function App() {
     }))
   }, [transactions, totalExpense])
 
-  const handleAddTransaction = (e) => {
+  const handleAddTransaction = async (e) => {
     e.preventDefault()
     if (!title.trim() || !amount || Number(amount) <= 0) return
 
-    const categoryList = CATEGORIES[type]
-    const matched =
-      categoryList.find((c) => c.label === category) || categoryList[0]
-
-    const newTx = {
-      id: `tx-${Date.now()}`,
-      title: title.trim(),
-      amount: parseFloat(amount),
-      type,
-      category: matched.label,
-      date: new Date().toISOString().split('T')[0],
-      icon: matched.icon,
+    const targetAccount = accounts[0]
+    if (!targetAccount) {
+      alert('Please create at least one account first.')
+      return
     }
 
-    setTransactions([newTx, ...transactions])
+    await addTransaction({
+      type,
+      payeeName: title.trim(),
+      date: new Date().toISOString().split('T')[0],
+      status: 'cleared',
+      lines: [
+        {
+          accountId: targetAccount.id,
+          categoryId: null,
+          direction: type === 'income' ? 'in' : 'out',
+          amount: amount,
+          currency: targetAccount.currency || currencyCode,
+          baseAmount: amount,
+          description: title.trim(),
+        },
+      ],
+    })
+
     setTitle('')
     setAmount('')
   }
+
 
   const handleDelete = (id) => {
     setTransactions(transactions.filter((t) => t.id !== id))
@@ -470,64 +485,11 @@ export default function App() {
           )}
 
           {activeTab === 'transactions' && (
-            <section className="panel" aria-label="Full Ledger">
-              <h2 className="panel-title">
-                <span>🧾</span> Master Ledger Activity
-              </h2>
-              <div className="filter-bar" style={{ marginBottom: '1.5rem' }}>
-                <input
-                  type="text"
-                  className="input-field filter-input"
-                  placeholder="Filter by description or payee..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <select
-                  className="select-field filter-select"
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                >
-                  <option value="all">All Categories</option>
-                  {[...CATEGORIES.expense, ...CATEGORIES.income].map((cat) => (
-                    <option key={cat.label} value={cat.label}>
-                      {cat.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="tx-list">
-                {filteredTransactions.map((tx) => (
-                  <div key={tx.id} className="tx-item">
-                    <div className="tx-left">
-                      <div className="tx-category-icon">{tx.icon}</div>
-                      <div>
-                        <div className="tx-title">{tx.title}</div>
-                        <div className="tx-sub">{tx.category} • {tx.date}</div>
-                      </div>
-                    </div>
-                    <div className="tx-right">
-                      <MoneyDisplay
-                        amount={tx.amount}
-                        currencyCode={currencyCode}
-                        numberFormat={numberFormat}
-                        type={tx.type}
-                        showSign
-                        className="tx-amount"
-                      />
-                      <button
-                        type="button"
-                        className="tx-delete-btn"
-                        onClick={() => handleDelete(tx.id)}
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+            <TransactionsView
+              onOpenCreateTransaction={() => setCreateTxModalOpen(true)}
+            />
           )}
+
 
           {activeTab === 'accounts' && (
             <AccountsView
@@ -605,11 +567,9 @@ export default function App() {
       <MobileNav
         activeTab={activeTab}
         onSelectTab={handleTabChange}
-        onOpenQuickAdd={() => {
-          setActiveTab('overview')
-          window.scrollTo({ top: 350, behavior: 'smooth' })
-        }}
+        onOpenQuickAdd={() => setCreateTxModalOpen(true)}
       />
+
 
       {/* Auth Modal */}
       <AuthModal
@@ -658,7 +618,14 @@ export default function App() {
         isOpen={createTagModalOpen}
         onClose={() => setCreateTagModalOpen(false)}
       />
+
+      {/* Book Transaction Modal */}
+      <CreateTransactionModal
+        isOpen={createTxModalOpen}
+        onClose={() => setCreateTxModalOpen(false)}
+      />
     </div>
   )
 }
+
 

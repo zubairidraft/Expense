@@ -40,11 +40,12 @@ Delivery Model: Vertical Slices (Database + Server Logic + UI + Tests together p
   - Seed catalog (personal, household, business)
   - Merchants with aliases, tags
 
-- [ ] **Phase 7: Transaction Ledger**
+- [x] **Phase 7: Transaction Ledger**
   - Header + lines model; expense, income, transfer, refund, adjustment
   - Split transactions, cross-currency transfers, transfer fees
   - Idempotency triggers, balance snapshots
   - Transaction table with filters, pagination, drawer
+
 - [ ] **Phase 8: Quick Add & Offline**
   - Sub-10 second entry from any page
   - IndexedDB offline outbox queue with idempotency sync

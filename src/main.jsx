@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext'
 import { WorkspaceProvider } from './context/WorkspaceContext'
 import { AccountProvider } from './context/AccountContext'
 import { CategoryProvider } from './context/CategoryContext'
+import { TransactionProvider } from './context/TransactionContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -13,10 +14,13 @@ createRoot(document.getElementById('root')).render(
       <WorkspaceProvider>
         <AccountProvider>
           <CategoryProvider>
-            <App />
+            <TransactionProvider>
+              <App />
+            </TransactionProvider>
           </CategoryProvider>
         </AccountProvider>
       </WorkspaceProvider>
     </AuthProvider>
   </StrictMode>,
 )
+
