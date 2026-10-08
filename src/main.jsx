@@ -14,6 +14,7 @@ import { BudgetProvider } from './context/BudgetContext'
 import { GoalProvider } from './context/GoalContext'
 import { SharedDebtsProvider } from './context/SharedDebtsContext'
 import { BusinessProvider } from './context/BusinessContext'
+import { CurrencyProvider } from './context/CurrencyContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -29,7 +30,9 @@ createRoot(document.getElementById('root')).render(
                       <GoalProvider>
                         <SharedDebtsProvider>
                           <BusinessProvider>
-                            <App />
+                            <CurrencyProvider>
+                              <App />
+                            </CurrencyProvider>
                           </BusinessProvider>
                         </SharedDebtsProvider>
                       </GoalProvider>

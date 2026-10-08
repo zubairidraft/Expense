@@ -42,6 +42,8 @@ import CreateContactModal from './components/shared/CreateContactModal'
 import BusinessView from './components/business/BusinessView'
 import CreateProjectModal from './components/business/CreateProjectModal'
 import CreateCostCenterModal from './components/business/CreateCostCenterModal'
+import CurrencyConverterModal from './components/currency/CurrencyConverterModal'
+import ImportExportModal from './components/imports/ImportExportModal'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -157,6 +159,8 @@ export default function App() {
   const [createContactModalOpen, setCreateContactModalOpen] = useState(false)
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false)
   const [createCostCenterModalOpen, setCreateCostCenterModalOpen] = useState(false)
+  const [currencyConverterModalOpen, setCurrencyConverterModalOpen] = useState(false)
+  const [importExportModalOpen, setImportExportModalOpen] = useState(false)
 
   // Global Keyboard Shortcuts (Ctrl+K or Q or / for Quick Add)
   useEffect(() => {
@@ -289,6 +293,8 @@ export default function App() {
             onOpenCreateWorkspace={() => setCreateWsModalOpen(true)}
             onOpenWorkspaceMembers={() => setMembersWsModalOpen(true)}
             onOpenQuickAdd={() => setQuickAddModalOpen(true)}
+            onOpenCurrencyConverter={() => setCurrencyConverterModalOpen(true)}
+            onOpenImportExport={() => setImportExportModalOpen(true)}
           />
 
 
@@ -800,6 +806,21 @@ export default function App() {
       <CreateCostCenterModal
         isOpen={createCostCenterModalOpen}
         onClose={() => setCreateCostCenterModalOpen(false)}
+      />
+
+      {/* Stage E Modals */}
+      <CurrencyConverterModal
+        isOpen={currencyConverterModalOpen}
+        onClose={() => setCurrencyConverterModalOpen(false)}
+      />
+
+      <ImportExportModal
+        isOpen={importExportModalOpen}
+        onClose={() => setImportExportModalOpen(false)}
+        onApplySmsDraft={(draft) => {
+          setReceiptDraftData(draft);
+          setCreateTxModalOpen(true);
+        }}
       />
     </div>
   )

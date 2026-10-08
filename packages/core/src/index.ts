@@ -10,3 +10,6 @@ export * from './budgets/evaluator.js';
 export * from './goals/evaluator.js';
 export * from './shared-debts/splitCalculator.js';
 export * from './business/businessCalculators.js';
+export * from './currency/currencyConverter.js';
+export * from './parsers/bankSmsParser.js';
+export * from './parsers/csvParser.js';

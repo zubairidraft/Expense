@@ -5,9 +5,10 @@
 - **Stage B: Ledger Core (Phases 5–9) — 100% Completed & Verified**
 - **Stage C: Planning Features (Phases 10–13) — 100% Completed & Verified**
 - **Stage D: People & Obligations (Phases 14–15) — 100% Completed & Verified**
+- **Stage E: Data In & Out (Phases 16–17) — 100% Completed & Verified**
 
-**Current Milestone:** Stage E — Data In & Out  
-**Next Phase:** **Phase 16 — Multi-Currency Services** (Scheduled FX rates, provider fallbacks, historical conversion rates)
+**Current Milestone:** Stage F — Insight  
+**Next Phase:** **Phase 18 — Analytics Data Layer** (`security_invoker = true` views for spending, net worth, cash flow)
 
 ---
 
@@ -28,6 +29,27 @@
 - **Phase 13 — Goals & Fund Allocations (Complete & Verified)**
 - **Phase 14 — Shared Expenses, Debts & Installments (Complete & Verified)**
 - **Phase 15 — Business & Household Modules (Complete & Verified)**
+- **Phase 16 — Multi-Currency Services (Complete & Verified)**
+- **Phase 17 — Import & Export (Complete & Verified)**
+
+---
+
+### Stage E Deliverables Verified:
+- [x] Remote Database & Migrations:
+  - `20261008000014_multi_currency_exchange_rates.sql`: `public.exchange_rates` with unique `(workspace_id, base_currency, target_currency, rate_date)`, `numeric(20,10)` FX rate precision, RLS, `upsert_exchange_rate` RPC, and 12 seeded benchmark rates (USD, EUR, GBP, AED, SAR, PKR, INR).
+  - `20261008000015_import_and_export.sql`: `public.import_batches` and `public.import_rows` with unique `dedupe_hash` preventing duplicate entries across imports, RLS, status tracking.
+- [x] Core Domain Package (`@universal-expense/core`):
+  - Currency conversion utilities (`convertCurrency`, `invertRate`, `calculateTriangularRate`, `getEstimatedRate`).
+  - Realistic Bank SMS parsing engine (`parseBankSms`, `generateDraftFromSms`) supporting regional Pakistani (HBL, Meezan, JazzCash, Easypaisa, UBL) and UAE (Emirates NBD, ADCB, FAB) alert templates into standard transaction drafts.
+  - CSV parser and deduplication hasher (`parseCsv`, `computeDedupeHash` with FNV-1a).
+  - Full CSV ledger exporter (`exportTransactionsToCsv`) and full Workspace JSON backup exporter (`exportWorkspaceToJson`).
+  - 14 test suites, 81/81 unit tests passing.
+- [x] Frontend State & UI Modules:
+  - `CurrencyContext.jsx` with real-time rate fetching, triangular cross-rate calculation, manual rate override, and offline rate caching.
+  - `CurrencyConverterModal.jsx` with interactive live conversion calculator, benchmark currency rates table, and custom rate override editor.
+  - `ImportExportModal.jsx` with Bank SMS paste & draft converter (preset one-click samples), CSV statement parser with automatic deduplication preview, and complete CSV ledger / JSON workspace export downloaders.
+  - Integrated into `Navbar.jsx` with quick action buttons (`💱 FX Rates`, `📲 Import / Export`) and wired in `App.jsx`.
+  - Production build clean: `npm.cmd run build` passed with 0 errors.
 
 ---
 

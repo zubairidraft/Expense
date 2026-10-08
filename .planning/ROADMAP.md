@@ -85,9 +85,9 @@ Delivery Model: Vertical Slices (Database + Server Logic + UI + Tests together p
 ---
 
 ### STAGE E — DATA IN & OUT
-- [ ] **Phase 16: Multi-Currency Services**
+- [x] **Phase 16: Multi-Currency Services**
   - Scheduled FX rates, provider fallbacks, historical rates
-- [ ] **Phase 17: Import & Export**
+- [x] **Phase 17: Import & Export**
   - CSV, OFX/QIF, PDF bank statements
   - SMS parsing (HBL, Meezan, UBL, JazzCash, Easypaisa, UAE banks)
   - JSON and CSV full export

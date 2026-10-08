@@ -9,6 +9,8 @@ export default function Navbar({
   onOpenCreateWorkspace,
   onOpenWorkspaceMembers,
   onOpenQuickAdd,
+  onOpenCurrencyConverter,
+  onOpenImportExport,
 }) {
   const { user, profile } = useAuth();
   const currencyInfo = CURRENCY_REGISTRY[profile.defaultCurrency] || { symbol: profile.defaultCurrency };
@@ -35,6 +37,28 @@ export default function Navbar({
       <div className="header-badges">
         {/* Offline & Sync Status Pill */}
         <SyncStatusBadge />
+
+        {/* Currency Rates Modal Action */}
+        <button
+          className="btn-secondary"
+          style={{ padding: '0.4rem 0.65rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          onClick={onOpenCurrencyConverter}
+          title="Live Multi-Currency FX Rates & Converter"
+        >
+          <span>💱</span>
+          <span>FX Rates</span>
+        </button>
+
+        {/* Data In & Out Modal Action */}
+        <button
+          className="btn-secondary"
+          style={{ padding: '0.4rem 0.65rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          onClick={onOpenImportExport}
+          title="Bank SMS Parser, CSV Import & Export Backup"
+        >
+          <span>📲</span>
+          <span>Import / Export</span>
+        </button>
 
         {/* Global Quick Add Button */}
         <button
