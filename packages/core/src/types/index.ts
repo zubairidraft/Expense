@@ -131,3 +131,30 @@ export interface UserProfile {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export type MemberStatus = 'active' | 'invited' | 'suspended';
+
+export interface Workspace {
+  id: string;
+  name: string;
+  type: WorkspaceType;
+  baseCurrency: string;
+  ownerId: string;
+  timezone: string;
+  monthStartDay: number;
+  budgetingStyle: 'limit_based' | 'envelope';
+  archivedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkspaceMember {
+  id: string;
+  workspaceId: string;
+  userId: string;
+  role: WorkspaceRole;
+  status: MemberStatus;
+  joinedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}

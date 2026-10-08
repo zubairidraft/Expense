@@ -1,7 +1,13 @@
 import { useAuth } from '../../context/AuthContext';
 import { CURRENCY_REGISTRY } from '../../lib/formatters';
+import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher';
 
-export default function Navbar({ onOpenAuth, onOpenSettings }) {
+export default function Navbar({
+  onOpenAuth,
+  onOpenSettings,
+  onOpenCreateWorkspace,
+  onOpenWorkspaceMembers,
+}) {
   const { user, profile } = useAuth();
   const currencyInfo = CURRENCY_REGISTRY[profile.defaultCurrency] || { symbol: profile.defaultCurrency };
 
@@ -25,6 +31,12 @@ export default function Navbar({ onOpenAuth, onOpenSettings }) {
       </div>
 
       <div className="header-badges">
+        {/* Workspace Switcher */}
+        <WorkspaceSwitcher
+          onOpenCreate={onOpenCreateWorkspace}
+          onOpenMembers={onOpenWorkspaceMembers}
+        />
+
         <div className="agent-badge" title="Agentation real-time UI inspection server active">
           <span className="pulse-dot"></span>
           Agentation Live

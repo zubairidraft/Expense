@@ -5,6 +5,9 @@ import { formatMoney, CURRENCY_REGISTRY } from './lib/formatters'
 import Navbar from './components/layout/Navbar'
 import AuthModal from './components/auth/AuthModal'
 import ProfileSettingsModal from './components/profile/ProfileSettingsModal'
+import { useWorkspace } from './context/WorkspaceContext'
+import CreateWorkspaceModal from './components/workspace/CreateWorkspaceModal'
+import WorkspaceMembersModal from './components/workspace/WorkspaceMembersModal'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -75,8 +78,11 @@ const CATEGORIES = {
 
 export default function App() {
   const { profile } = useAuth()
+  const { currentWorkspace } = useWorkspace()
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [settingsModalOpen, setSettingsModalOpen] = useState(false)
+  const [createWsModalOpen, setCreateWsModalOpen] = useState(false)
+  const [membersWsModalOpen, setMembersWsModalOpen] = useState(false)
 
   const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS)
   const [type, setType] = useState('expense')
@@ -86,7 +92,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
 
-  const currencyCode = profile?.defaultCurrency || 'USD'
+  const currencyCode = currentWorkspace?.base_currency || profile?.defaultCurrency || 'USD'
   const numberFormat = profile?.numberFormat || 'intl'
   const currencyInfo = CURRENCY_REGISTRY[currencyCode] || { symbol: currencyCode }
 
@@ -168,6 +174,8 @@ export default function App() {
       <Navbar
         onOpenAuth={() => setAuthModalOpen(true)}
         onOpenSettings={() => setSettingsModalOpen(true)}
+        onOpenCreateWorkspace={() => setCreateWsModalOpen(true)}
+        onOpenWorkspaceMembers={() => setMembersWsModalOpen(true)}
       />
 
       {/* Overview Metric Cards */}
@@ -425,6 +433,18 @@ export default function App() {
       <ProfileSettingsModal
         isOpen={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
+      />
+
+      {/* Create Workspace Modal */}
+      <CreateWorkspaceModal
+        isOpen={createWsModalOpen}
+        onClose={() => setCreateWsModalOpen(false)}
+      />
+
+      {/* Workspace Members & Settings Modal */}
+      <WorkspaceMembersModal
+        isOpen={membersWsModalOpen}
+        onClose={() => setMembersWsModalOpen(false)}
       />
     </div>
   )

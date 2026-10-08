@@ -122,3 +122,21 @@ export const ProfileUpdateSchema = z.object({
 });
 
 export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;
+
+export const WorkspaceUpdateSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  type: z.enum(['personal', 'household', 'business', 'custom']).optional(),
+  baseCurrency: z.string().length(3).toUpperCase().optional(),
+  timezone: z.string().optional(),
+  monthStartDay: z.number().int().min(1).max(31).optional(),
+  budgetingStyle: z.enum(['limit_based', 'envelope']).optional(),
+  archivedAt: z.string().nullable().optional(),
+});
+
+export const WorkspaceMemberInviteSchema = z.object({
+  email: z.string().email('Valid email address required'),
+  role: z.enum(['owner', 'admin', 'manager', 'member', 'viewer']).default('member'),
+});
+
+export type WorkspaceUpdateInput = z.infer<typeof WorkspaceUpdateSchema>;
+export type WorkspaceMemberInviteInput = z.infer<typeof WorkspaceMemberInviteSchema>;

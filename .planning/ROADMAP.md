@@ -17,7 +17,7 @@ Delivery Model: Vertical Slices (Database + Server Logic + UI + Tests together p
 - [x] **Phase 2: Authentication & Profiles**
   - Sign-up, login, logout, password reset
   - Profiles: currency, locale, number format (lakh/intl), date format, theme
-- [ ] **Phase 3: Workspaces, Membership & Permissions**
+- [x] **Phase 3: Workspaces, Membership & Permissions**
   - Personal, household, business workspaces; create, switch, archive
   - Roles (owner/admin/manager/member/viewer)
   - Workspace timezone, base currency, `month_start_day`
