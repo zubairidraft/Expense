@@ -13,6 +13,8 @@ import WorkspaceMembersModal from './components/workspace/WorkspaceMembersModal'
 import MoneyInput from './components/ui/MoneyInput'
 import MoneyDisplay from './components/ui/MoneyDisplay'
 import StatCard from './components/ui/StatCard'
+import AccountsView from './components/accounts/AccountsView'
+import CreateAccountModal from './components/accounts/CreateAccountModal'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -94,6 +96,7 @@ export default function App() {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false)
   const [createWsModalOpen, setCreateWsModalOpen] = useState(false)
   const [membersWsModalOpen, setMembersWsModalOpen] = useState(false)
+  const [createAccountModalOpen, setCreateAccountModalOpen] = useState(false)
 
   // Ledger State
   const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS)
@@ -520,34 +523,9 @@ export default function App() {
           )}
 
           {activeTab === 'accounts' && (
-            <section className="panel" aria-label="Accounts Vault">
-              <h2 className="panel-title">
-                <span>💳</span> Accounts & Vaults
-              </h2>
-              <div className="stats-grid" style={{ marginTop: '1.25rem' }}>
-                <div className="stat-card">
-                  <span className="stat-label">Main Checking (Bank)</span>
-                  <div className="stat-value">
-                    <MoneyDisplay amount={2850.5} currencyCode={currencyCode} numberFormat={numberFormat} />
-                  </div>
-                  <span className="stat-meta">Asset · Primary Account</span>
-                </div>
-                <div className="stat-card">
-                  <span className="stat-label">Physical Cash Vault</span>
-                  <div className="stat-value">
-                    <MoneyDisplay amount={480.0} currencyCode={currencyCode} numberFormat={numberFormat} />
-                  </div>
-                  <span className="stat-meta">Asset · Petty Cash</span>
-                </div>
-                <div className="stat-card">
-                  <span className="stat-label">Corporate Credit Card</span>
-                  <div className="stat-value expense">
-                    <MoneyDisplay amount={145.5} currencyCode={currencyCode} numberFormat={numberFormat} type="expense" />
-                  </div>
-                  <span className="stat-meta">Liability · Due next cycle</span>
-                </div>
-              </div>
-            </section>
+            <AccountsView
+              onOpenCreateAccount={() => setCreateAccountModalOpen(true)}
+            />
           )}
 
           {activeTab === 'budgets' && (
@@ -639,6 +617,12 @@ export default function App() {
       <WorkspaceMembersModal
         isOpen={membersWsModalOpen}
         onClose={() => setMembersWsModalOpen(false)}
+      />
+
+      {/* Create Account Modal */}
+      <CreateAccountModal
+        isOpen={createAccountModalOpen}
+        onClose={() => setCreateAccountModalOpen(false)}
       />
     </div>
   )

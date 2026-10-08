@@ -158,3 +158,22 @@ export interface WorkspaceMember {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface Account {
+  id: string;
+  workspaceId: string;
+  name: string;
+  type: AccountType;
+  nature: AccountNature;
+  currency: string;
+  openingBalance: string;
+  openingDate: string;
+  creditLimit?: string | null;
+  visibility: AccountVisibility;
+  ownerMemberId?: string | null;
+  icon?: string;
+  color?: string;
+  archivedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}

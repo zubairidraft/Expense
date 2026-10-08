@@ -140,3 +140,31 @@ export const WorkspaceMemberInviteSchema = z.object({
 
 export type WorkspaceUpdateInput = z.infer<typeof WorkspaceUpdateSchema>;
 export type WorkspaceMemberInviteInput = z.infer<typeof WorkspaceMemberInviteSchema>;
+
+export const AccountUpdateSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  type: z.enum([
+    'bank',
+    'cash',
+    'card',
+    'savings',
+    'wallet',
+    'e_wallet',
+    'investment',
+    'loan',
+    'bnpl',
+    'custom',
+  ]).optional(),
+  nature: z.enum(['asset', 'liability']).optional(),
+  currency: z.string().length(3).toUpperCase().optional(),
+  openingBalance: MoneyStringSchema.optional(),
+  openingDate: DateStringSchema.optional(),
+  creditLimit: MoneyStringSchema.nullable().optional(),
+  visibility: z.enum(['shared', 'private']).optional(),
+  ownerMemberId: z.string().uuid().nullable().optional(),
+  icon: z.string().optional(),
+  color: z.string().optional(),
+  archivedAt: z.string().nullable().optional(),
+});
+
+export type AccountUpdateInput = z.infer<typeof AccountUpdateSchema>;

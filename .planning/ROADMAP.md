@@ -31,7 +31,7 @@ Delivery Model: Vertical Slices (Database + Server Logic + UI + Tests together p
 ---
 
 ### STAGE B — LEDGER CORE
-- [ ] **Phase 5: Accounts**
+- [x] **Phase 5: Accounts**
   - Bank, cash, card, savings, wallet, e-wallet, investment, loan, BNPL (Asset vs Liability nature)
   - Opening balance, opening date, currency, credit limit, visibility (shared/private)
   - Account list and detail view with running balances
