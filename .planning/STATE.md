@@ -11,8 +11,8 @@
 ---
 
 ### Phase 2 Deliverables Verified:
-- [x] Database migration authored: `supabase/migrations/20261008000002_auth_and_profiles.sql`
-  - Secured `public.currencies` with Row Level Security (RLS read-only)
+- [x] Database migration applied to live Supabase (`nmbxopltqeilhzplwcgs`):
+  - Verified `public.profiles` table and `public.currencies` with Row Level Security (RLS) enabled
   - Created `public.profiles` table with user preferences: `default_currency`, `locale`, `number_format` (`intl` | `lakh`), `date_format`, `theme`
   - Automated profile provisioning trigger `handle_new_user` on `auth.users`
   - RLS policies on `profiles` enforcing user tenant boundary (`auth.uid() = id`)
