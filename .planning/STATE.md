@@ -4,9 +4,10 @@
 - **Stage A: Foundations (Phases 0–4) — 100% Completed & Verified**
 - **Stage B: Ledger Core (Phases 5–9) — 100% Completed & Verified**
 - **Stage C: Planning Features (Phases 10–13) — 100% Completed & Verified**
+- **Stage D: People & Obligations (Phases 14–15) — 100% Completed & Verified**
 
-**Current Milestone:** Stage D — People & Obligations  
-**Next Phase:** **Phase 14 — Shared Expenses, Debts & Installments** (Split equal/exact/percent/shares, settle-up debt simplification, udhaar, BNPL/EMI)
+**Current Milestone:** Stage E — Data In & Out  
+**Next Phase:** **Phase 16 — Multi-Currency Services** (Scheduled FX rates, provider fallbacks, historical conversion rates)
 
 ---
 
@@ -25,6 +26,31 @@
 - **Phase 11 — Recurring, Subscriptions & Bills Calendar (Complete & Verified)**
 - **Phase 12 — Budgets & Envelopes (Complete & Verified)**
 - **Phase 13 — Goals & Fund Allocations (Complete & Verified)**
+- **Phase 14 — Shared Expenses, Debts & Installments (Complete & Verified)**
+- **Phase 15 — Business & Household Modules (Complete & Verified)**
+
+---
+
+### Stage D Deliverables Verified:
+- [x] Remote Database & Migrations:
+  - `20261008000012_shared_debts_and_installments.sql`: `public.contacts`, `public.shared_expenses`, `public.shared_expense_splits`, `public.debts`, `public.debt_events`, `public.installment_plans`, `public.installment_schedules`, with RPCs `record_debt_payment` and `pay_installment_schedule` applied to Supabase (`nmbxopltqeilhzplwcgs`).
+  - `20261008000013_business_and_household.sql`: `public.projects`, `public.cost_centers`, extended `public.transaction_lines` (project_id, cost_center_id, member_id, billable, reimbursable, tax_amount), and security_invoker reporting view `public.project_financial_summaries`.
+- [x] Core Domain Package (`@universal-expense/core`):
+  - Equal split penny distributor (`calculateEqualSplit`).
+  - Percentage & shares split calculations with exact penny preservation (`calculatePercentSplit`, `calculateSharesSplit`, `validateExactSplit`).
+  - Graph-based debt simplification algorithm (`simplifyDebts`).
+  - Installment schedule generator (`generateInstallmentSchedule`).
+  - Inclusive and exclusive tax calculator (`calculateTax`).
+  - Project margin and budget burn calculator (`calculateProjectFinancials`).
+  - Household member attribution breakdown (`calculateMemberSpendingBreakdown`).
+  - Full test suite: 12 test files, 67/67 unit tests passing.
+- [x] Frontend State & UI Modules:
+  - `SharedDebtsContext.jsx` + `CreateSharedExpenseModal.jsx` + `CreateDebtModal.jsx` + `RecordDebtPaymentModal.jsx` + `CreateInstallmentModal.jsx` + `CreateContactModal.jsx`.
+  - `BusinessContext.jsx` + `CreateProjectModal.jsx` + `CreateCostCenterModal.jsx`.
+  - Unified `SharedDebtsView.jsx` (Shared Bills, Udhaar, BNPL/EMI, Contacts, Settle-Up Simplification Board).
+  - Unified `BusinessView.jsx` (Projects, Cost Centers, Household Attribution, Interactive VAT Tool).
+  - Wired into `App.jsx`, `Sidebar.jsx`, and `main.jsx`.
+  - Production build clean: `npm.cmd run build` passed with 0 errors.
 
 ---
 

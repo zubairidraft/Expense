@@ -73,12 +73,12 @@ Delivery Model: Vertical Slices (Database + Server Logic + UI + Tests together p
 ---
 
 ### STAGE D — PEOPLE & OBLIGATIONS
-- [ ] **Phase 14: Shared Expenses, Debts & Installments**
+- [x] **Phase 14: Shared Expenses, Debts & Installments**
   - Shared expenses (split equal, exact, percent, shares)
   - Settle-up debt simplification
   - Personal lending/borrowing (udhaar) with reminders
   - Installment/EMI/BNPL plans with repayment schedules
-- [ ] **Phase 15: Business & Household Modules**
+- [x] **Phase 15: Business & Household Modules**
   - Projects, clients, cost centers, tax/VAT, billable/reimbursable
   - Member attribution, private accounts in shared spaces
 

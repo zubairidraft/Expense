@@ -7,6 +7,8 @@ const NAV_ITEMS = [
   { id: 'categories', label: 'Categories & Tags', icon: '🏷️' },
   { id: 'recurring', label: 'Bills & Subscriptions', icon: '🔁' },
   { id: 'budgets', label: 'Budgets & Goals', icon: '🎯' },
+  { id: 'shared', label: 'Shared & Debts', icon: '🤝' },
+  { id: 'business', label: 'Business & Projects', icon: '💼' },
   { id: 'analytics', label: 'Visual Analytics', icon: '📈' },
   { id: 'settings', label: 'Preferences', icon: '⚙️' },
 ];

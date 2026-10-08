@@ -33,6 +33,15 @@ import BudgetsView from './components/budgets/BudgetsView'
 import CreateBudgetModal from './components/budgets/CreateBudgetModal'
 import CreateGoalModal from './components/goals/CreateGoalModal'
 import AllocateGoalModal from './components/goals/AllocateGoalModal'
+import SharedDebtsView from './components/shared/SharedDebtsView'
+import CreateSharedExpenseModal from './components/shared/CreateSharedExpenseModal'
+import CreateDebtModal from './components/shared/CreateDebtModal'
+import RecordDebtPaymentModal from './components/shared/RecordDebtPaymentModal'
+import CreateInstallmentModal from './components/shared/CreateInstallmentModal'
+import CreateContactModal from './components/shared/CreateContactModal'
+import BusinessView from './components/business/BusinessView'
+import CreateProjectModal from './components/business/CreateProjectModal'
+import CreateCostCenterModal from './components/business/CreateCostCenterModal'
 import './App.css'
 
 const INITIAL_TRANSACTIONS = [
@@ -140,6 +149,14 @@ export default function App() {
   const [createGoalModalOpen, setCreateGoalModalOpen] = useState(false)
   const [allocateGoalModalOpen, setAllocateGoalModalOpen] = useState(false)
   const [selectedGoalForAlloc, setSelectedGoalForAlloc] = useState(null)
+  const [createSharedExpenseModalOpen, setCreateSharedExpenseModalOpen] = useState(false)
+  const [createDebtModalOpen, setCreateDebtModalOpen] = useState(false)
+  const [recordDebtPaymentModalOpen, setRecordDebtPaymentModalOpen] = useState(false)
+  const [selectedDebtForPayment, setSelectedDebtForPayment] = useState(null)
+  const [createInstallmentModalOpen, setCreateInstallmentModalOpen] = useState(false)
+  const [createContactModalOpen, setCreateContactModalOpen] = useState(false)
+  const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false)
+  const [createCostCenterModalOpen, setCreateCostCenterModalOpen] = useState(false)
 
   // Global Keyboard Shortcuts (Ctrl+K or Q or / for Quick Add)
   useEffect(() => {
@@ -572,6 +589,26 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'shared' && (
+            <SharedDebtsView
+              onOpenCreateSharedExpense={() => setCreateSharedExpenseModalOpen(true)}
+              onOpenCreateDebt={() => setCreateDebtModalOpen(true)}
+              onOpenCreateInstallment={() => setCreateInstallmentModalOpen(true)}
+              onOpenCreateContact={() => setCreateContactModalOpen(true)}
+              onOpenRecordPayment={(debt) => {
+                setSelectedDebtForPayment(debt);
+                setRecordDebtPaymentModalOpen(true);
+              }}
+            />
+          )}
+
+          {activeTab === 'business' && (
+            <BusinessView
+              onOpenCreateProject={() => setCreateProjectModalOpen(true)}
+              onOpenCreateCostCenter={() => setCreateCostCenterModalOpen(true)}
+            />
+          )}
+
           {activeTab === 'analytics' && (
             <section className="panel" aria-label="Visual Analytics">
               <h2 className="panel-title">
@@ -721,6 +758,48 @@ export default function App() {
           setAllocateGoalModalOpen(false);
           setSelectedGoalForAlloc(null);
         }}
+      />
+
+      {/* Stage D Modals */}
+      <CreateSharedExpenseModal
+        isOpen={createSharedExpenseModalOpen}
+        onClose={() => setCreateSharedExpenseModalOpen(false)}
+        onOpenAddContact={() => setCreateContactModalOpen(true)}
+      />
+
+      <CreateDebtModal
+        isOpen={createDebtModalOpen}
+        onClose={() => setCreateDebtModalOpen(false)}
+        onOpenAddContact={() => setCreateContactModalOpen(true)}
+      />
+
+      <RecordDebtPaymentModal
+        isOpen={recordDebtPaymentModalOpen}
+        debt={selectedDebtForPayment}
+        onClose={() => {
+          setRecordDebtPaymentModalOpen(false);
+          setSelectedDebtForPayment(null);
+        }}
+      />
+
+      <CreateInstallmentModal
+        isOpen={createInstallmentModalOpen}
+        onClose={() => setCreateInstallmentModalOpen(false)}
+      />
+
+      <CreateContactModal
+        isOpen={createContactModalOpen}
+        onClose={() => setCreateContactModalOpen(false)}
+      />
+
+      <CreateProjectModal
+        isOpen={createProjectModalOpen}
+        onClose={() => setCreateProjectModalOpen(false)}
+      />
+
+      <CreateCostCenterModal
+        isOpen={createCostCenterModalOpen}
+        onClose={() => setCreateCostCenterModalOpen(false)}
       />
     </div>
   )

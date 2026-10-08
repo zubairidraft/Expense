@@ -399,7 +399,103 @@ export type GoalCreateInput = z.infer<typeof GoalCreateSchema>;
 export type GoalUpdateInput = z.infer<typeof GoalUpdateSchema>;
 export type GoalAllocationCreateInput = z.infer<typeof GoalAllocationCreateSchema>;
 
+// Stage D Schemas
+export const ContactCreateSchema = z.object({
+  name: z.string().trim().min(1, 'Contact name is required').max(100),
+  phone: z.string().trim().nullable().optional(),
+  email: z.string().email().nullable().optional().or(z.literal('')),
+  avatarUrl: z.string().url().nullable().optional().or(z.literal('')),
+  notes: z.string().nullable().optional(),
+});
 
+export const ContactUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  phone: z.string().trim().nullable().optional(),
+  email: z.string().email().nullable().optional().or(z.literal('')),
+  avatarUrl: z.string().url().nullable().optional().or(z.literal('')),
+  notes: z.string().nullable().optional(),
+});
 
+export const SplitMethodSchema = z.enum(['equal', 'exact', 'percent', 'shares']);
 
+export const SharedExpenseSplitInputSchema = z.object({
+  contactId: z.string().uuid(),
+  shareAmount: MoneyStringSchema,
+  sharePercentage: z.number().nullable().optional(),
+  sharesCount: z.number().nullable().optional(),
+  paidAmount: MoneyStringSchema.default('0.00'),
+});
 
+export const SharedExpenseCreateSchema = z.object({
+  title: z.string().trim().min(1, 'Expense title required').max(200),
+  totalAmount: MoneyStringSchema,
+  currency: z.string().length(3).toUpperCase().default('USD'),
+  splitMethod: SplitMethodSchema.default('equal'),
+  payerContactId: z.string().uuid().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  splits: z.array(SharedExpenseSplitInputSchema).min(1, 'At least one participant is required'),
+});
+
+export const DebtDirectionSchema = z.enum(['lent', 'borrowed']);
+export const DebtStatusSchema = z.enum(['active', 'partially_settled', 'settled', 'written_off']);
+
+export const DebtCreateSchema = z.object({
+  contactId: z.string().uuid(),
+  direction: DebtDirectionSchema,
+  principal: MoneyStringSchema,
+  currency: z.string().length(3).toUpperCase().default('USD'),
+  dueDate: DateStringSchema.nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+export const DebtPaymentCreateSchema = z.object({
+  debtId: z.string().uuid(),
+  amount: MoneyStringSchema,
+  eventType: z.enum(['disburse', 'repayment', 'forgive']).default('repayment'),
+  paymentDate: DateStringSchema.default(() => new Date().toISOString().split('T')[0]),
+  notes: z.string().nullable().optional(),
+});
+
+export const InstallmentFrequencySchema = z.enum(['weekly', 'biweekly', 'monthly', 'quarterly']);
+
+export const InstallmentPlanCreateSchema = z.object({
+  name: z.string().trim().min(1, 'Plan name is required').max(150),
+  liabilityAccountId: z.string().uuid().nullable().optional(),
+  principalAmount: MoneyStringSchema,
+  interestOrFee: MoneyStringSchema.default('0.00'),
+  currency: z.string().length(3).toUpperCase().default('USD'),
+  totalInstallments: z.number().int().min(1, 'Must have at least 1 installment'),
+  frequency: InstallmentFrequencySchema.default('monthly'),
+  startDate: DateStringSchema,
+  notes: z.string().nullable().optional(),
+});
+
+export const ProjectStatusSchema = z.enum(['active', 'on_hold', 'completed', 'archived']);
+
+export const ProjectCreateSchema = z.object({
+  name: z.string().trim().min(1, 'Project name is required').max(150),
+  code: z.string().trim().max(30).nullable().optional(),
+  clientId: z.string().uuid().nullable().optional(),
+  budget: MoneyStringSchema.nullable().optional(),
+  currency: z.string().length(3).toUpperCase().default('USD'),
+  status: ProjectStatusSchema.default('active'),
+  startDate: DateStringSchema.nullable().optional(),
+  endDate: DateStringSchema.nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+export const CostCenterCreateSchema = z.object({
+  name: z.string().trim().min(1, 'Cost center name is required').max(100),
+  code: z.string().trim().max(30).nullable().optional(),
+  description: z.string().nullable().optional(),
+  active: z.boolean().default(true),
+});
+
+export type ContactCreateInput = z.infer<typeof ContactCreateSchema>;
+export type ContactUpdateInput = z.infer<typeof ContactUpdateSchema>;
+export type SharedExpenseCreateInput = z.infer<typeof SharedExpenseCreateSchema>;
+export type DebtCreateInput = z.infer<typeof DebtCreateSchema>;
+export type DebtPaymentCreateInput = z.infer<typeof DebtPaymentCreateSchema>;
+export type InstallmentPlanCreateInput = z.infer<typeof InstallmentPlanCreateSchema>;
+export type ProjectCreateInput = z.infer<typeof ProjectCreateSchema>;
+export type CostCenterCreateInput = z.infer<typeof CostCenterCreateSchema>;

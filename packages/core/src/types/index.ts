@@ -408,8 +408,170 @@ export interface GoalProgressSummary {
   isCompleted: boolean;
   monthlyContributionNeeded?: string | null;
 }
+export type SplitMethod = 'equal' | 'exact' | 'percent' | 'shares';
+export type DebtDirection = 'lent' | 'borrowed';
+export type DebtStatus = 'active' | 'partially_settled' | 'settled' | 'written_off';
+export type InstallmentFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
+export type InstallmentStatus = 'active' | 'completed' | 'defaulted';
+export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'archived';
 
+export interface Contact {
+  id: string;
+  workspaceId: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  avatarUrl?: string | null;
+  linkedUserId?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
+export interface SharedExpense {
+  id: string;
+  workspaceId: string;
+  transactionId?: string | null;
+  title: string;
+  totalAmount: string;
+  currency: string;
+  splitMethod: SplitMethod;
+  payerContactId?: string | null;
+  notes?: string | null;
+  splits?: SharedExpenseSplit[];
+  createdAt?: string;
+  updatedAt?: string;
+}
 
+export interface SharedExpenseSplit {
+  id: string;
+  sharedExpenseId: string;
+  workspaceId: string;
+  contactId: string;
+  shareAmount: string;
+  sharePercentage?: number | null;
+  sharesCount?: number | null;
+  paidAmount: string;
+  settled: boolean;
+  createdAt?: string;
+}
 
+export interface Debt {
+  id: string;
+  workspaceId: string;
+  contactId: string;
+  direction: DebtDirection;
+  principal: string;
+  remainingAmount: string;
+  currency: string;
+  dueDate?: string | null;
+  status: DebtStatus;
+  notes?: string | null;
+  contact?: Contact;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DebtEvent {
+  id: string;
+  debtId: string;
+  workspaceId: string;
+  transactionId?: string | null;
+  eventType: 'disburse' | 'repayment' | 'forgive';
+  amount: string;
+  paymentDate: string;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export interface InstallmentPlan {
+  id: string;
+  workspaceId: string;
+  name: string;
+  liabilityAccountId?: string | null;
+  totalAmount: string;
+  principalAmount: string;
+  interestOrFee: string;
+  currency: string;
+  totalInstallments: number;
+  paidInstallments: number;
+  installmentAmount: string;
+  frequency: InstallmentFrequency;
+  startDate: string;
+  nextDueDate?: string | null;
+  status: InstallmentStatus;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface InstallmentSchedule {
+  id: string;
+  planId: string;
+  installmentNumber: number;
+  dueDate: string;
+  amount: string;
+  paidAmount: string;
+  status: 'pending' | 'paid' | 'overdue';
+  transactionId?: string | null;
+  paidAt?: string | null;
+  createdAt?: string;
+}
+
+export interface SimplifiedDebtSettlement {
+  fromContactId: string;
+  toContactId: string;
+  amount: string;
+}
+
+export interface Project {
+  id: string;
+  workspaceId: string;
+  name: string;
+  code?: string | null;
+  clientId?: string | null;
+  budget?: string | null;
+  currency: string;
+  status: ProjectStatus;
+  startDate?: string | null;
+  endDate?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CostCenter {
+  id: string;
+  workspaceId: string;
+  name: string;
+  code?: string | null;
+  description?: string | null;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ProjectFinancialSummary {
+  projectId: string;
+  projectName: string;
+  projectCode?: string | null;
+  budget?: string | null;
+  currency: string;
+  status: ProjectStatus;
+  totalRevenue: string;
+  totalExpense: string;
+  totalBillableExpense: string;
+  totalReimbursableExpense: string;
+  totalTaxAmount: string;
+  netProfit: string;
+  budgetBurnPercent?: number;
+}
+
+export interface TaxCalculationResult {
+  subtotal: string;
+  taxAmount: string;
+  total: string;
+  ratePercent: number;
+  isInclusive: boolean;
+}
 
