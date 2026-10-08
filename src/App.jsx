@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Agentation } from 'agentation'
 import { useAuth } from './context/AuthContext'
 import { useWorkspace } from './context/WorkspaceContext'
@@ -23,8 +23,8 @@ import CreateMerchantModal from './components/categories/CreateMerchantModal'
 import CreateTagModal from './components/categories/CreateTagModal'
 import TransactionsView from './components/transactions/TransactionsView'
 import CreateTransactionModal from './components/transactions/CreateTransactionModal'
+import QuickAddModal from './components/transactions/QuickAddModal'
 import './App.css'
-
 
 const INITIAL_TRANSACTIONS = [
   {
@@ -120,8 +120,27 @@ export default function App() {
   const [createMerchantModalOpen, setCreateMerchantModalOpen] = useState(false)
   const [createTagModalOpen, setCreateTagModalOpen] = useState(false)
   const [createTxModalOpen, setCreateTxModalOpen] = useState(false)
+  const [quickAddModalOpen, setQuickAddModalOpen] = useState(false)
+
+  // Global Keyboard Shortcuts (Ctrl+K or Q or / for Quick Add)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault()
+        setQuickAddModalOpen(true)
+      } else if (e.key === 'q' || e.key === 'Q' || e.key === '/') {
+        e.preventDefault()
+        setQuickAddModalOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Ledger Quick Form State
+
   const [type, setType] = useState('expense')
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
@@ -233,7 +252,9 @@ export default function App() {
             onOpenSettings={() => setSettingsModalOpen(true)}
             onOpenCreateWorkspace={() => setCreateWsModalOpen(true)}
             onOpenWorkspaceMembers={() => setMembersWsModalOpen(true)}
+            onOpenQuickAdd={() => setQuickAddModalOpen(true)}
           />
+
 
           {/* Overview Metrics Cards */}
           <section className="stats-grid" aria-label="Financial Overview">
@@ -567,9 +588,8 @@ export default function App() {
       <MobileNav
         activeTab={activeTab}
         onSelectTab={handleTabChange}
-        onOpenQuickAdd={() => setCreateTxModalOpen(true)}
+        onOpenQuickAdd={() => setQuickAddModalOpen(true)}
       />
-
 
       {/* Auth Modal */}
       <AuthModal
@@ -624,8 +644,15 @@ export default function App() {
         isOpen={createTxModalOpen}
         onClose={() => setCreateTxModalOpen(false)}
       />
+
+      {/* Quick Add Speed Entry Modal */}
+      <QuickAddModal
+        isOpen={quickAddModalOpen}
+        onClose={() => setQuickAddModalOpen(false)}
+      />
     </div>
   )
 }
+
 
 

@@ -10,30 +10,26 @@
 - **Phase 5 — Accounts (Complete & Verified)**
 - **Phase 6 — Categories, Tags & Merchants (Complete & Verified)**
 - **Phase 7 — Transaction Ledger (Complete & Verified)**
+- **Phase 8 — Quick Add & Offline (Complete & Verified)**
 
-**Next Phase:** **Phase 8 — Quick Add & Offline (<10 sec UX, IndexedDB outbox queue, background sync)**
+**Next Phase:** **Phase 9 — Rules Engine & Reconciliation (Deterministic auto-categorization rules, statement reconciliation)**
 
 ---
 
-### Phase 7 Deliverables Verified:
-- [x] Database Migration applied to live Supabase (`nmbxopltqeilhzplwcgs`):
-  - Created `public.transactions` header table with `idempotency_key`, `version`, `status` (`pending`, `cleared`, `reconciled`), and soft deletion (`deleted_at`).
-  - Created `public.transaction_lines` table storing authoritative double-entry lines (`numeric(19,4)` money precision, `fx_rate`, `base_amount`, category & account references).
-  - Created `public.transaction_tags` association table.
-  - Created `public.balance_snapshots` table for historical auditability and checksum verification.
-  - Stored Procedure `public.book_transaction` for atomic double-entry booking with idempotency deduplication.
-  - Calculated balance function `public.get_account_balance(p_account_id)` honoring asset vs liability conventions.
-  - Row Level Security (RLS) policies isolating transactions, lines, tags, and snapshots to workspace members.
-  - pgTAP test suite created: `supabase/tests/06_transaction_ledger.test.sql`.
-- [x] Core Package Integration (`packages/core`):
-  - Vitest test suites (all 31/31 unit tests passing).
-  - Mathematical precision tested with Banker's rounding (`packages/core/tests/ledger-and-money.test.ts`).
-- [x] Frontend Ledger Management System:
-  - `src/context/TransactionContext.jsx` handling real-time Supabase sync, RPC booking, status toggling, and fallback guest transactions.
-  - `src/components/transactions/TransactionsView.jsx` featuring multi-dimensional filtering (Type, Account, Status, Payee search), and real-time inflow/outflow metrics.
-  - `src/components/transactions/TransactionDrawer.jsx` slide-over detail drawer displaying full double-entry ledger lines, audit metadata, and reconciliation buttons.
-  - `src/components/transactions/CreateTransactionModal.jsx` supporting standard entries, transfers with source/destination/fee lines, split line allocations, and tag attachments.
-  - Integrated into persistent App Shell navigation under **Ledger Activity** (`🧾`) and mobile bottom nav quick add (`➕`).
+### Phase 8 Deliverables Verified:
+- [x] IndexedDB Offline Outbox Queue:
+  - `src/lib/offlineQueue.js` implemented using native IndexedDB (`UniversalExpenseOutboxDB`), storing pending transactions with idempotency keys and timestamps.
+  - CRUD operations: `enqueueOfflineTransaction`, `getPendingOfflineTransactions`, `removeOfflineTransaction`, `countOfflineTransactions`.
+- [x] Automatic Offline-Resilient Transaction Context:
+  - `src/context/TransactionContext.jsx` extended with `isOnline`, `pendingOutboxCount`, `isSyncing`, and `syncOutbox`.
+  - Automatic browser reconnection handler listening to `online` and `offline` window events.
+  - Idempotent auto-sync upon reconnection pushing queued outbox entries to Supabase via `book_transaction`.
+- [x] Sub-10 Second Speed Entry Flow:
+  - `src/components/transactions/QuickAddModal.jsx`: Ultra-fast entry modal with big numeric input, instant category presets (Groceries, Coffee, Dining, Fuel, Cloud, Client Income), and immediate optimistic logging.
+  - Global keyboard shortcuts: `Ctrl+K`, `Cmd+K`, `Q`, and `/` opening the Quick Add dialog from any screen.
+- [x] Visual Status & Sync Indicators:
+  - `src/components/ui/SyncStatusBadge.jsx` mounted in top Navbar displaying real-time status (`Online · Synced`, `Offline Mode · X queued`, or `Syncing...`).
+  - Mobile bottom navigation center floating `➕` wired directly to Quick Add.
 - [x] Quality & Verification:
-  - Production build clean verification passed (`npm.cmd run build` in 4.16s).
-  - Dev server actively serving on `http://localhost:5173/`.
+  - Production build clean verification passed (`npm.cmd run build` in 1.55s).
+  - All 31/31 unit tests in `packages/core` passing.

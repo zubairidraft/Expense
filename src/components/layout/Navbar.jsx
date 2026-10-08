@@ -1,12 +1,14 @@
 import { useAuth } from '../../context/AuthContext';
 import { CURRENCY_REGISTRY } from '../../lib/formatters';
 import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher';
+import SyncStatusBadge from '../ui/SyncStatusBadge';
 
 export default function Navbar({
   onOpenAuth,
   onOpenSettings,
   onOpenCreateWorkspace,
   onOpenWorkspaceMembers,
+  onOpenQuickAdd,
 }) {
   const { user, profile } = useAuth();
   const currencyInfo = CURRENCY_REGISTRY[profile.defaultCurrency] || { symbol: profile.defaultCurrency };
@@ -31,11 +33,26 @@ export default function Navbar({
       </div>
 
       <div className="header-badges">
+        {/* Offline & Sync Status Pill */}
+        <SyncStatusBadge />
+
+        {/* Global Quick Add Button */}
+        <button
+          className="navbar-quick-add-btn"
+          onClick={onOpenQuickAdd}
+          title="Speed entry: Quick log transaction (Ctrl+K or /)"
+        >
+          <span>⚡</span>
+          <span className="quick-btn-text">Quick Add</span>
+          <kbd className="quick-kbd">Ctrl+K</kbd>
+        </button>
+
         {/* Workspace Switcher */}
         <WorkspaceSwitcher
           onOpenCreate={onOpenCreateWorkspace}
           onOpenMembers={onOpenWorkspaceMembers}
         />
+
 
         <div className="agent-badge" title="Agentation real-time UI inspection server active">
           <span className="pulse-dot"></span>

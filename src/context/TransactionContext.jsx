@@ -3,8 +3,15 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useWorkspace } from './WorkspaceContext';
 import { useAccounts } from './AccountContext';
+import {
+  enqueueOfflineTransaction,
+  getPendingOfflineTransactions,
+  removeOfflineTransaction,
+  countOfflineTransactions,
+} from '../lib/offlineQueue';
 
 const TransactionContext = createContext(null);
+
 
 const DEFAULT_GUEST_TRANSACTIONS = [
   {
@@ -164,6 +171,19 @@ export function TransactionProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Offline & Outbox State
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+  const [pendingOutboxCount, setPendingOutboxCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Refresh outbox count
+  const refreshOutboxCount = useCallback(async () => {
+    const cnt = await countOfflineTransactions();
+    setPendingOutboxCount(cnt);
+  }, []);
+
   const fetchTransactions = useCallback(async () => {
     if (!currentWorkspace?.id || !user || currentWorkspace.id === 'guest-space') {
       setTransactions(DEFAULT_GUEST_TRANSACTIONS);
@@ -204,6 +224,82 @@ export function TransactionProvider({ children }) {
     }
   }, [currentWorkspace?.id, user]);
 
+  // Sync IndexedDB outbox to Supabase
+  const syncOutbox = useCallback(async () => {
+    if (!user || !currentWorkspace?.id || currentWorkspace.id === 'guest-space') return;
+    if (isSyncing) return;
+
+    try {
+      setIsSyncing(true);
+      const pendingItems = await getPendingOfflineTransactions();
+      if (!pendingItems || pendingItems.length === 0) {
+        setPendingOutboxCount(0);
+        return;
+      }
+
+      console.log(`[OfflineQueue] Syncing ${pendingItems.length} queued transactions...`);
+
+      for (const item of pendingItems) {
+        if (item.workspaceId === currentWorkspace.id) {
+          const { error: rpcErr } = await supabase.rpc('book_transaction', {
+            p_workspace_id: item.workspaceId,
+            p_type: item.type,
+            p_date: item.date,
+            p_status: item.status || 'cleared',
+            p_merchant_id: item.merchantId || null,
+            p_payee_name: item.payeeName,
+            p_notes: item.notes,
+            p_idempotency_key: item.idempotencyKey,
+            p_source: item.source || 'manual',
+            p_lines: item.lines,
+            p_tag_ids: item.tagIds || [],
+          });
+
+          if (!rpcErr) {
+            await removeOfflineTransaction(item.idempotencyKey);
+          } else {
+            console.error('[OfflineQueue] Sync failed for item:', item.idempotencyKey, rpcErr);
+          }
+        }
+      }
+
+      await refreshOutboxCount();
+      await fetchTransactions();
+      if (refreshAccounts) refreshAccounts();
+    } catch (syncErr) {
+      console.warn('[OfflineQueue] Sync exception:', syncErr);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [currentWorkspace?.id, user, isSyncing, refreshOutboxCount, fetchTransactions, refreshAccounts]);
+
+  // Online / Offline Listeners
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      syncOutbox();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Initial check
+    refreshOutboxCount().then(() => {
+      if (navigator.onLine) {
+        syncOutbox();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [syncOutbox, refreshOutboxCount]);
+
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
@@ -222,36 +318,59 @@ export function TransactionProvider({ children }) {
   }) => {
     const idempotencyKey = `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
+    // Optimistic fallback object
+    const optimisticTx = {
+      id: `tx-${Date.now()}`,
+      workspace_id: currentWorkspace?.id || 'guest-space',
+      type,
+      date,
+      status,
+      merchant_id: merchantId,
+      payee_name: payeeName,
+      notes,
+      idempotency_key: idempotencyKey,
+      is_offline_pending: !isOnline,
+      created_at: new Date().toISOString(),
+      lines: lines.map((l, idx) => ({
+        id: `line-${Date.now()}-${idx}`,
+        account_id: l.accountId,
+        category_id: l.categoryId || null,
+        direction: l.direction,
+        amount: String(l.amount),
+        currency: l.currency,
+        fx_rate: l.fxRate || '1.0000000000',
+        base_amount: String(l.baseAmount || l.amount),
+        description: l.description || '',
+        category: l.category || null,
+        account: l.account || null,
+      })),
+      tags: [],
+    };
+
     if (!user || currentWorkspace?.id === 'guest-space') {
-      const newTx = {
-        id: `tx-${Date.now()}`,
-        workspace_id: currentWorkspace?.id || 'guest-space',
+      setTransactions((prev) => [optimisticTx, ...prev]);
+      return { data: optimisticTx, error: null };
+    }
+
+    // If currently offline, queue into IndexedDB immediately!
+    if (!navigator.onLine) {
+      await enqueueOfflineTransaction({
+        workspaceId: currentWorkspace.id,
         type,
         date,
         status,
-        merchant_id: merchantId,
-        payee_name: payeeName,
+        merchantId,
+        payeeName,
         notes,
-        idempotency_key: idempotencyKey,
-        created_at: new Date().toISOString(),
-        lines: lines.map((l, idx) => ({
-          id: `line-${Date.now()}-${idx}`,
-          account_id: l.accountId,
-          category_id: l.categoryId || null,
-          direction: l.direction,
-          amount: String(l.amount),
-          currency: l.currency,
-          fx_rate: l.fxRate || '1.0000000000',
-          base_amount: String(l.baseAmount || l.amount),
-          description: l.description || '',
-          category: l.category || null,
-          account: l.account || null,
-        })),
-        tags: [],
-      };
+        idempotencyKey,
+        source,
+        lines,
+        tagIds,
+      });
 
-      setTransactions((prev) => [newTx, ...prev]);
-      return { data: newTx, error: null };
+      await refreshOutboxCount();
+      setTransactions((prev) => [optimisticTx, ...prev]);
+      return { data: optimisticTx, error: null, queuedOffline: true };
     }
 
     try {
@@ -282,11 +401,29 @@ export function TransactionProvider({ children }) {
 
       return { data: txId, error: null };
     } catch (err) {
-      console.error('[TransactionContext] Booking error:', err);
-      setError(err.message);
-      return { data: null, error: err };
+      console.warn('[TransactionContext] Booking failed or offline, queuing into outbox:', err);
+
+      // Queue into IndexedDB as safety net
+      await enqueueOfflineTransaction({
+        workspaceId: currentWorkspace.id,
+        type,
+        date,
+        status,
+        merchantId,
+        payeeName,
+        notes,
+        idempotencyKey,
+        source,
+        lines,
+        tagIds,
+      });
+
+      await refreshOutboxCount();
+      setTransactions((prev) => [optimisticTx, ...prev]);
+      return { data: optimisticTx, error: null, queuedOffline: true };
     }
   };
+
 
   // Soft delete transaction
   const deleteTransaction = async (transactionId) => {
@@ -383,6 +520,10 @@ export function TransactionProvider({ children }) {
         totalExpense,
         balance,
         savingsRate,
+        isOnline,
+        pendingOutboxCount,
+        isSyncing,
+        syncOutbox,
         addTransaction,
         deleteTransaction,
         updateStatus,
@@ -391,6 +532,7 @@ export function TransactionProvider({ children }) {
     >
       {children}
     </TransactionContext.Provider>
+
   );
 }
 
