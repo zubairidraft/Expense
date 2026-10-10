@@ -480,6 +480,9 @@ BEGIN
 END;
 $$;
 
+DROP VIEW IF EXISTS public.v_net_worth_snapshot CASCADE;
+DROP VIEW IF EXISTS public.v_account_balances_current CASCADE;
+
 -- Secure view: incorporates both owned accounts and shared accounts for a given workspace
 CREATE OR REPLACE VIEW public.v_account_balances_current
 WITH (security_invoker = true) AS
@@ -538,6 +541,22 @@ SELECT
   b.bal AS current_balance,
   round(b.bal * COALESCE(public.get_fx_rate(b.currency, b.base_currency, CURRENT_DATE), 0), 4)::NUMERIC(19,4) AS current_base_balance
 FROM balances b;
+
+-- Re-create net worth snapshot view taking into account count_in_net_worth
+CREATE OR REPLACE VIEW public.v_net_worth_snapshot
+WITH (security_invoker = true)
+AS
+SELECT
+  workspace_id,
+  COALESCE(SUM(CASE WHEN account_nature = 'asset' THEN current_base_balance ELSE 0 END), 0)::NUMERIC(19,4) AS total_assets,
+  COALESCE(SUM(CASE WHEN account_nature = 'liability' THEN current_base_balance ELSE 0 END), 0)::NUMERIC(19,4) AS total_liabilities,
+  (
+    COALESCE(SUM(CASE WHEN account_nature = 'asset' THEN current_base_balance ELSE 0 END), 0) -
+    COALESCE(SUM(CASE WHEN account_nature = 'liability' THEN current_base_balance ELSE 0 END), 0)
+  )::NUMERIC(19,4) AS net_worth
+FROM public.v_account_balances_current
+WHERE count_in_net_worth = true
+GROUP BY workspace_id;
 
 -- -----------------------------------------------------------------------------
 -- 8. RPC: get_shared_account_activity
