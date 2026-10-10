@@ -141,9 +141,9 @@ export default function TransactionsView({
       </section>
 
       {/* Action Header & Filtering Toolbar */}
-      <div className="accounts-action-bar" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="accounts-action-bar" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem', width: '100%', maxWidth: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', width: '100%', maxWidth: '100%' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', width: '100%', maxWidth: '100%' }}>
             <div className="accounts-filter-group">
               <button
                 className={`acc-filter-btn ${filterOrigin === 'all' ? 'active' : ''}`}
@@ -193,7 +193,7 @@ export default function TransactionsView({
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', width: '100%', maxWidth: '100%' }}>
             {onOpenReceiptScanner && (
               <button
                 type="button"
@@ -252,7 +252,7 @@ export default function TransactionsView({
         </div>
 
         {/* Detailed Dropdown Filters & Search */}
-        <div className="filter-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+        <div className="filter-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', width: '100%', maxWidth: '100%' }}>
           <input
             type="text"
             className="input-field filter-input"

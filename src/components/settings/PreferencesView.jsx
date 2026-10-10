@@ -158,6 +158,25 @@ export default function PreferencesView() {
           </p>
         </div>
 
+        {/* Mobile Tab Dropdown */}
+        <div className="preferences-tab-dropdown-wrap">
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
+            Settings Section
+          </label>
+          <select
+            className="select-field preferences-tab-select"
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+            style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 600 }}
+          >
+            <option value="profile">👤 Profile & Region</option>
+            <option value="appearance">🎨 Appearance</option>
+            <option value="workspace">🏢 Workspace Settings</option>
+            <option value="members">👥 Members ({members.length})</option>
+            <option value="data">💾 Data & Backup</option>
+          </select>
+        </div>
+
         {/* Tab Pills */}
         <div className="preferences-tabs-bar" style={{ display: 'flex', gap: '0.4rem', background: 'var(--bg-card, rgba(var(--md-on-surface-rgb), 0.05))', padding: '0.3rem', borderRadius: '12px', border: '1px solid var(--border-color, rgba(var(--md-on-surface-rgb), 0.08))' }}>
           <button
