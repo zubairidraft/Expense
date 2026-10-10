@@ -1,9 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNotifications } from '../../context/NotificationContext';
 
 export default function NotificationCenterModal({ isOpen, onClose }) {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'budgets' | 'bills'
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -44,8 +55,8 @@ export default function NotificationCenterModal({ isOpen, onClose }) {
             {unreadCount > 0 && (
               <span
                 style={{
-                  background: 'var(--danger-color, #ef4444)',
-                  color: '#fff',
+                  background: 'var(--danger-color, var(--md-error))',
+                  color: 'var(--md-on-primary)',
                   borderRadius: '10px',
                   padding: '0.15rem 0.5rem',
                   fontSize: '0.75rem',
@@ -120,7 +131,7 @@ export default function NotificationCenterModal({ isOpen, onClose }) {
                   padding: '0.85rem 1rem',
                   borderRadius: '8px',
                   border: '1px solid var(--border-color)',
-                  background: notif.is_read ? 'var(--bg-secondary, rgba(255,255,255,0.02))' : 'rgba(99, 102, 241, 0.08)',
+                  background: notif.is_read ? 'var(--bg-secondary, rgba(var(--md-on-surface-rgb), 0.02))' : 'rgba(var(--md-primary-rgb), 0.08)',
                   display: 'flex',
                   gap: '0.75rem',
                   alignItems: 'flex-start',
@@ -138,7 +149,7 @@ export default function NotificationCenterModal({ isOpen, onClose }) {
                         style={{
                           background: 'transparent',
                           border: 'none',
-                          color: 'var(--primary-color, #6366f1)',
+                          color: 'var(--primary-color, var(--md-primary))',
                           fontSize: '0.75rem',
                           cursor: 'pointer',
                           padding: '0.1rem 0.3rem',

@@ -166,7 +166,7 @@ export default function CategoriesView({
                   <div className="cat-item-left">
                     <div
                       className="cat-avatar-bubble"
-                      style={{ backgroundColor: `${cat.color || '#6366f1'}22`, borderColor: cat.color || '#6366f1' }}
+                      style={{ backgroundColor: `${cat.color || 'var(--md-primary)'}22`, borderColor: cat.color || 'var(--md-primary)' }}
                     >
                       <span className="cat-emoji">{cat.icon || '📦'}</span>
                     </div>
@@ -212,7 +212,7 @@ export default function CategoriesView({
                   <div className="cat-item-left">
                     <div
                       className="cat-avatar-bubble"
-                      style={{ backgroundColor: `${cat.color || '#ec4899'}22`, borderColor: cat.color || '#ec4899' }}
+                      style={{ backgroundColor: `${cat.color || 'var(--md-tertiary)'}22`, borderColor: cat.color || 'var(--md-tertiary)' }}
                     >
                       <span className="cat-emoji">{cat.icon || '📦'}</span>
                     </div>
@@ -261,7 +261,7 @@ export default function CategoriesView({
                 <div className="cat-item-left">
                   <div
                     className="cat-avatar-bubble"
-                    style={{ backgroundColor: `${cat.color || '#10b981'}22`, borderColor: cat.color || '#10b981' }}
+                    style={{ backgroundColor: `${cat.color || 'var(--md-success)'}22`, borderColor: cat.color || 'var(--md-success)' }}
                   >
                     <span className="cat-emoji">{cat.icon || '💰'}</span>
                   </div>
@@ -398,7 +398,7 @@ export default function CategoriesView({
                 <div key={tag.id} className="tag-pill-card">
                   <span
                     className="tag-dot"
-                    style={{ backgroundColor: tag.color || '#8b5cf6' }}
+                    style={{ backgroundColor: tag.color || 'var(--md-primary)' }}
                   />
                   <span className="tag-name">{tag.name}</span>
                   <button

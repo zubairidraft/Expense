@@ -16,6 +16,15 @@ describe('Phase 11: Recurring Profiles & Cash Flow Projection', () => {
     expect(computeNextDueDate('2026-10-01', 'yearly', 1)).toBe('2027-10-01');
   });
 
+  it('clamps month-end schedules instead of overflowing into the next month', () => {
+    expect(computeNextDueDate('2027-01-31', 'monthly', 1)).toBe('2027-02-28');
+    expect(computeNextDueDate('2028-01-31', 'monthly', 1)).toBe('2028-02-29');
+    // anchor day keeps the 31st after a short month
+    expect(computeNextDueDate('2027-02-28', 'monthly', 1, 31)).toBe('2027-03-31');
+    expect(computeNextDueDate('2026-08-31', 'quarterly', 1)).toBe('2026-11-30');
+    expect(computeNextDueDate('2028-02-29', 'yearly', 1)).toBe('2029-02-28');
+  });
+
   it('generates a 30-day cash flow projection with inflows and outflows', () => {
     const today = new Date().toISOString().split('T')[0];
     const profiles: RecurringProfile[] = [

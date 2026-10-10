@@ -5,6 +5,8 @@ import { useRules } from '../../context/RuleContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import MoneyInput from '../ui/MoneyInput';
 import MoneyDisplay from '../ui/MoneyDisplay';
+import { todayISO } from '../../lib/dates';
+import { dec } from '../../lib/money';
 
 export default function ReconciliationModal({ isOpen, onClose }) {
   const { accounts } = useAccounts();
@@ -17,7 +19,7 @@ export default function ReconciliationModal({ isOpen, onClose }) {
   // Step 1: Account & Target
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [statementDate, setStatementDate] = useState(
-    new Date().toISOString().split('T')[0]
+    todayISO()
   );
   const [statementBalance, setStatementBalance] = useState('');
 
@@ -49,33 +51,26 @@ export default function ReconciliationModal({ isOpen, onClose }) {
     });
   }, [transactions, targetAccount, statementDate]);
 
-  // Calculate Cleared Total of selected matched transactions
+  // Cleared balance = opening balance + already-reconciled lines + selected lines,
+  // in the ACCOUNT's own currency (line.amount, never the base-currency amount).
   const selectedClearedTotal = useMemo(() => {
     if (!targetAccount) return 0;
-    const openingBal = parseFloat(targetAccount.opening_balance || '0');
+    const isAsset = (targetAccount.nature || 'asset') === 'asset';
+    let bal = dec(targetAccount.opening_balance);
 
-    let inSum = 0;
-    let outSum = 0;
-
-    candidateTransactions.forEach((t) => {
-      if (selectedTxIds.includes(t.id)) {
-        t.lines?.forEach((l) => {
-          if (l.account_id === targetAccount.id || l.accountId === targetAccount.id) {
-            const amt = parseFloat(l.base_amount || l.amount || '0');
-            if (l.direction === 'in') inSum += amt;
-            else outSum += amt;
-          }
-        });
+    for (const t of transactions) {
+      if (t.deleted_at) continue;
+      const counts = t.status === 'reconciled' || selectedTxIds.includes(t.id);
+      if (!counts || (t.date || '') > statementDate) continue;
+      for (const l of t.lines || []) {
+        if ((l.account_id || l.accountId) !== targetAccount.id) continue;
+        const amt = dec(l.amount);
+        const isIn = l.direction === 'in';
+        bal = isAsset === isIn ? bal.plus(amt) : bal.minus(amt);
       }
-    });
-
-    if (targetAccount.nature === 'asset') {
-      return openingBal + inSum - outSum;
-    } else {
-      // Liability (e.g. Credit card balance owed)
-      return openingBal + outSum - inSum;
     }
-  }, [targetAccount, candidateTransactions, selectedTxIds]);
+    return bal.toNumber();
+  }, [targetAccount, transactions, selectedTxIds, statementDate]);
 
   const targetBalNum = parseFloat(statementBalance || '0');
   const difference = targetBalNum - selectedClearedTotal;

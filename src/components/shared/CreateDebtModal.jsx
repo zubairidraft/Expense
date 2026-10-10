@@ -1,19 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSharedDebts } from '../../context/SharedDebtsContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { useAccounts } from '../../context/AccountContext';
 import MoneyInput from '../ui/MoneyInput';
 
 export default function CreateDebtModal({ isOpen, onClose, onOpenAddContact }) {
   const { contacts, createDebt } = useSharedDebts();
   const { currentWorkspace } = useWorkspace();
+  const { accounts } = useAccounts();
 
   const [direction, setDirection] = useState('lent'); // 'lent' (they owe me) vs 'borrowed' (I owe them)
   const [contactId, setContactId] = useState(contacts[0]?.id || '');
+  const [accountId, setAccountId] = useState(accounts[0]?.id || '');
   const [principal, setPrincipal] = useState('0.00');
   const [dueDate, setDueDate] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (accounts?.length && !accountId) {
+      setAccountId(accounts[0].id);
+    }
+  }, [accounts, accountId]);
 
   if (!isOpen) return null;
 
@@ -35,9 +44,11 @@ export default function CreateDebtModal({ isOpen, onClose, onOpenAddContact }) {
         contactId,
         direction,
         principal,
-        currency: currentWorkspace?.base_currency || 'USD',
+        // Loan currency follows the funding account (if any) so the ledger line is consistent
+        currency: accounts.find((a) => a.id === accountId)?.currency || currentWorkspace?.base_currency || 'USD',
         dueDate: dueDate || null,
         notes: notes.trim() || null,
+        accountId: accountId || null,
       });
       onClose();
     } catch (err) {
@@ -74,9 +85,9 @@ export default function CreateDebtModal({ isOpen, onClose, onOpenAddContact }) {
                 style={{
                   padding: '0.6rem',
                   borderRadius: '8px',
-                  background: direction === 'lent' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                  borderColor: direction === 'lent' ? '#10b981' : 'transparent',
-                  color: direction === 'lent' ? '#10b981' : '#94a3b8',
+                  background: direction === 'lent' ? 'rgba(var(--md-success-rgb), 0.2)' : 'rgba(var(--md-on-surface-rgb), 0.04)',
+                  borderColor: direction === 'lent' ? 'var(--md-success)' : 'transparent',
+                  color: direction === 'lent' ? 'var(--md-success)' : 'var(--md-on-surface-variant)',
                   fontWeight: 600,
                   fontSize: '0.88rem',
                 }}
@@ -90,9 +101,9 @@ export default function CreateDebtModal({ isOpen, onClose, onOpenAddContact }) {
                 style={{
                   padding: '0.6rem',
                   borderRadius: '8px',
-                  background: direction === 'borrowed' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                  borderColor: direction === 'borrowed' ? '#f59e0b' : 'transparent',
-                  color: direction === 'borrowed' ? '#f59e0b' : '#94a3b8',
+                  background: direction === 'borrowed' ? 'rgba(var(--md-warning-rgb), 0.2)' : 'rgba(var(--md-on-surface-rgb), 0.04)',
+                  borderColor: direction === 'borrowed' ? 'var(--md-warning)' : 'transparent',
+                  color: direction === 'borrowed' ? 'var(--md-warning)' : 'var(--md-on-surface-variant)',
                   fontWeight: 600,
                   fontSize: '0.88rem',
                 }}
@@ -110,7 +121,7 @@ export default function CreateDebtModal({ isOpen, onClose, onOpenAddContact }) {
                   type="button"
                   onClick={onOpenAddContact}
                   className="btn-text"
-                  style={{ fontSize: '0.78rem', color: '#6366f1' }}
+                  style={{ fontSize: '0.78rem', color: 'var(--md-primary)' }}
                 >
                   + Add Contact
                 </button>
@@ -129,6 +140,31 @@ export default function CreateDebtModal({ isOpen, onClose, onOpenAddContact }) {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Account Allocation */}
+          <div className="form-group">
+            <label className="form-label">
+              {direction === 'borrowed' ? '📥 Deposit Borrowed Funds Into Account *' : '📤 Disburse Lent Funds From Account *'}
+            </label>
+            <select
+              className="form-input"
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              required
+            >
+              <option value="">Select account...</option>
+              {accounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.icon || '💳'} {acc.name} ({acc.currency})
+                </option>
+              ))}
+            </select>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary, var(--md-on-surface-variant))', marginTop: '0.3rem' }}>
+              {direction === 'borrowed'
+                ? '💡 Funds will be added directly into this account balance.'
+                : '💡 Funds will be deducted directly from this account balance.'}
+            </div>
           </div>
 
           <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

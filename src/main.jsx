@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 import { WorkspaceProvider } from './context/WorkspaceContext'
 import { AccountProvider } from './context/AccountContext'
 import { CategoryProvider } from './context/CategoryContext'
@@ -21,6 +22,7 @@ import { NotificationProvider } from './context/NotificationContext'
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
+      <ThemeProvider>
       <WorkspaceProvider>
         <AccountProvider>
           <CategoryProvider>
@@ -50,6 +52,7 @@ createRoot(document.getElementById('root')).render(
           </CategoryProvider>
         </AccountProvider>
       </WorkspaceProvider>
+      </ThemeProvider>
     </AuthProvider>
   </StrictMode>,
 )

@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useRecurring } from '../../context/RecurringContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { useAccounts } from '../../context/AccountContext';
 import MoneyDisplay from '../ui/MoneyDisplay';
 import StatCard from '../ui/StatCard';
+import { todayISO } from '../../lib/dates';
 
 export default function RecurringView({ onOpenCreateRecurring }) {
   const {
@@ -14,11 +16,16 @@ export default function RecurringView({ onOpenCreateRecurring }) {
   } = useRecurring();
 
   const { currentWorkspace } = useWorkspace();
+  const { accounts } = useAccounts();
   const baseCurrency = currentWorkspace?.base_currency || 'USD';
 
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' | 'projection' | 'profiles'
   const [projectionDays, setProjectionDays] = useState(30); // 30 | 60 | 90
   const [markingId, setMarkingId] = useState(null);
+  const [payModalBill, setPayModalBill] = useState(null);
+  const [selectedPayAccountId, setSelectedPayAccountId] = useState('');
+  const [paymentDate, setPaymentDate] = useState(() => todayISO());
+  const [payError, setPayError] = useState('');
 
   // Compute projection
   const projection = useMemo(() => {
@@ -27,16 +34,30 @@ export default function RecurringView({ onOpenCreateRecurring }) {
 
   // Sort upcoming profiles
   const upcomingBills = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
     return [...recurringProfiles]
       .filter((p) => p.active)
       .sort((a, b) => (a.next_due_date || a.nextDueDate).localeCompare(b.next_due_date || b.nextDueDate));
   }, [recurringProfiles]);
 
-  const handleMarkPaid = async (profileId) => {
-    setMarkingId(profileId);
+  const handleOpenPayModal = (bill) => {
+    setPayModalBill(bill);
+    setSelectedPayAccountId(bill.account_id || bill.accountId || accounts[0]?.id || '');
+    setPaymentDate(todayISO());
+    setPayError('');
+  };
+
+  const handleConfirmPayment = async (e) => {
+    e.preventDefault();
+    if (!payModalBill) return;
+    setMarkingId(payModalBill.id);
+    setPayError('');
     try {
-      await markAsPaid(profileId, true);
+      const res = await markAsPaid(payModalBill.id, selectedPayAccountId, paymentDate);
+      if (res?.error) {
+        setPayError(res.error.message || 'Payment could not be recorded.');
+        return;
+      }
+      setPayModalBill(null);
     } finally {
       setMarkingId(null);
     }
@@ -154,13 +175,9 @@ export default function RecurringView({ onOpenCreateRecurring }) {
               return (
                 <div
                   key={bill.id}
-                  className="glass-card"
+                  className="glass-card recurring-bill-card"
                   style={{
                     padding: '1rem 1.25rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '1rem',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -169,7 +186,7 @@ export default function RecurringView({ onOpenCreateRecurring }) {
                         width: '42px',
                         height: '42px',
                         borderRadius: '10px',
-                        background: isExpense ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                        background: isExpense ? 'rgba(var(--md-error-rgb), 0.15)' : 'rgba(var(--md-success-rgb), 0.15)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -181,14 +198,14 @@ export default function RecurringView({ onOpenCreateRecurring }) {
 
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <strong style={{ fontSize: '1rem', color: '#f8fafc' }}>{bill.title}</strong>
+                        <strong style={{ fontSize: '1rem', color: 'var(--md-on-surface)' }}>{bill.title}</strong>
                         <span
                           style={{
                             fontSize: '0.72rem',
                             padding: '0.15rem 0.45rem',
                             borderRadius: '4px',
-                            background: 'rgba(255, 255, 255, 0.06)',
-                            color: 'var(--text-muted, #94a3b8)',
+                            background: 'rgba(var(--md-on-surface-rgb), 0.06)',
+                            color: 'var(--text-muted, var(--md-on-surface-variant))',
                             textTransform: 'capitalize',
                           }}
                         >
@@ -200,8 +217,8 @@ export default function RecurringView({ onOpenCreateRecurring }) {
                               fontSize: '0.72rem',
                               padding: '0.15rem 0.45rem',
                               borderRadius: '4px',
-                              background: 'rgba(99, 102, 241, 0.2)',
-                              color: '#818cf8',
+                              background: 'rgba(var(--md-primary-rgb), 0.2)',
+                              color: 'var(--md-primary)',
                             }}
                           >
                             Auto-Post
@@ -234,7 +251,7 @@ export default function RecurringView({ onOpenCreateRecurring }) {
                       className="submit-btn primary-glow"
                       style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem' }}
                       disabled={markingId === bill.id}
-                      onClick={() => handleMarkPaid(bill.id)}
+                      onClick={() => handleOpenPayModal(bill)}
                     >
                       {markingId === bill.id ? 'Booking...' : '✓ Mark Paid'}
                     </button>
@@ -264,7 +281,7 @@ export default function RecurringView({ onOpenCreateRecurring }) {
               ))}
             </div>
 
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94a3b8)' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, var(--md-on-surface-variant))' }}>
               Banker&apos;s decimal projection based on active recurring schedules
             </span>
           </div>
@@ -275,9 +292,9 @@ export default function RecurringView({ onOpenCreateRecurring }) {
               style={{
                 padding: '1rem',
                 borderRadius: '10px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.35)',
-                color: '#f87171',
+                background: 'rgba(var(--md-error-rgb), 0.15)',
+                border: '1px solid rgba(var(--md-error-rgb), 0.35)',
+                color: 'var(--md-error)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.75rem',
@@ -313,14 +330,14 @@ export default function RecurringView({ onOpenCreateRecurring }) {
 
             <div>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Projected Inflow (+)</span>
-              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#34d399' }}>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--md-success)' }}>
                 +<MoneyDisplay amount={parseFloat(projection.projectedInflow)} currencyCode={baseCurrency} />
               </div>
             </div>
 
             <div>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Projected Outflow (−)</span>
-              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f87171' }}>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--md-error)' }}>
                 −<MoneyDisplay amount={parseFloat(projection.projectedOutflow)} currencyCode={baseCurrency} />
               </div>
             </div>
@@ -331,7 +348,7 @@ export default function RecurringView({ onOpenCreateRecurring }) {
                 style={{
                   fontSize: '1.25rem',
                   fontWeight: 800,
-                  color: parseFloat(projection.projectedEndingBalance) >= 0 ? '#34d399' : '#f87171',
+                  color: parseFloat(projection.projectedEndingBalance) >= 0 ? 'var(--md-success)' : 'var(--md-error)',
                 }}
               >
                 <MoneyDisplay amount={parseFloat(projection.projectedEndingBalance)} currencyCode={baseCurrency} />
@@ -341,7 +358,7 @@ export default function RecurringView({ onOpenCreateRecurring }) {
 
           {/* Occurrences Chronological Feed */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <h3 style={{ fontSize: '0.95rem', color: '#cbd5e1', margin: '0.5rem 0' }}>
+            <h3 style={{ fontSize: '0.95rem', color: 'var(--md-on-surface-variant)', margin: '0.5rem 0' }}>
               Projected Timeline ({projection.occurrences.length} scheduled occurrences)
             </h3>
 
@@ -356,18 +373,18 @@ export default function RecurringView({ onOpenCreateRecurring }) {
                     style={{
                       padding: '0.75rem 1rem',
                       borderRadius: '8px',
-                      background: 'rgba(255,255,255,0.02)',
-                      border: '1px solid rgba(255,255,255,0.05)',
+                      background: 'rgba(var(--md-on-surface-rgb), 0.02)',
+                      border: '1px solid rgba(var(--md-on-surface-rgb), 0.05)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#38bdf8', minWidth: '90px' }}>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--md-info)', minWidth: '90px' }}>
                         {occ.date}
                       </span>
-                      <strong style={{ fontSize: '0.92rem', color: '#f8fafc' }}>{occ.title}</strong>
+                      <strong style={{ fontSize: '0.92rem', color: 'var(--md-on-surface)' }}>{occ.title}</strong>
                     </div>
 
                     <div style={{ fontWeight: 700 }}>
@@ -403,13 +420,13 @@ export default function RecurringView({ onOpenCreateRecurring }) {
             >
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <strong style={{ fontSize: '1rem', color: '#f8fafc' }}>{p.title}</strong>
+                  <strong style={{ fontSize: '1rem', color: 'var(--md-on-surface)' }}>{p.title}</strong>
                   <span
                     style={{
                       fontSize: '0.72rem',
                       padding: '0.15rem 0.45rem',
                       borderRadius: '4px',
-                      background: 'rgba(255,255,255,0.06)',
+                      background: 'rgba(var(--md-on-surface-rgb), 0.06)',
                       color: 'var(--text-muted)',
                       textTransform: 'capitalize',
                     }}
@@ -447,7 +464,7 @@ export default function RecurringView({ onOpenCreateRecurring }) {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#ef4444',
+                    color: 'var(--md-error)',
                     cursor: 'pointer',
                     padding: '0.25rem',
                   }}
@@ -458,6 +475,106 @@ export default function RecurringView({ onOpenCreateRecurring }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Account Deduction Confirmation Modal */}
+      {payModalBill && (
+        <div className="modal-backdrop" onClick={() => setPayModalBill(null)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '440px', width: '90%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3 className="modal-title">
+                💳 Confirm {payModalBill.type === 'income' ? 'Income Deposit' : 'Payment Deduction'}
+              </h3>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setPayModalBill(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmPayment}>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div
+                  style={{
+                    padding: '1rem',
+                    borderRadius: '10px',
+                    background: 'rgba(var(--md-primary-rgb), 0.08)',
+                    border: '1px solid rgba(var(--md-primary-rgb), 0.2)',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 600, fontSize: '1rem' }}>{payModalBill.title}</span>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 700, color: payModalBill.type === 'income' ? 'var(--md-success)' : 'var(--md-error)' }}>
+                      {payModalBill.type === 'income' ? '+' : '-'}${parseFloat(payModalBill.amount).toFixed(2)} {payModalBill.currency || baseCurrency}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
+                    Next Due Date: {payModalBill.next_due_date || payModalBill.nextDueDate} · {payModalBill.frequency}
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label">
+                    {payModalBill.type === 'income' ? 'Deposit Into Account' : 'Deduct Payment From Account'}
+                  </label>
+                  <select
+                    className="select-field"
+                    value={selectedPayAccountId}
+                    onChange={(e) => setSelectedPayAccountId(e.target.value)}
+                    required
+                  >
+                    {accounts.map((acc) => (
+                      <option key={acc.id} value={acc.id}>
+                        {acc.icon || '🏦'} {acc.name} ({acc.currency || baseCurrency}) — Bal: {acc.balance !== undefined ? acc.balance : acc.opening_balance || 0}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Payment Date</label>
+                  <input
+                    type="date"
+                    className="input-field"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {payError && (
+                <div className="error-message" role="alert" style={{ color: 'var(--color-danger, var(--md-error))', marginBottom: '0.75rem', fontSize: '0.85rem' }}>
+                  {payError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setPayModalBill(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="submit-btn primary-glow"
+                  disabled={markingId === payModalBill.id}
+                >
+                  {markingId === payModalBill.id ? 'Processing...' : 'Confirm & Deduct'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

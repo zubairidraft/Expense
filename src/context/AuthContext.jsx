@@ -11,14 +11,67 @@ export const DEFAULT_PROFILE = {
   numberFormat: 'intl',
   dateFormat: 'YYYY-MM-DD',
   theme: 'dark',
+  onboardingCompleted: true,
+};
+
+const getStoredProfile = () => {
+  try {
+    const raw = localStorage.getItem('expense_pro_profile');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_PROFILE, ...parsed };
+    }
+  } catch (e) {
+    console.warn('[AuthContext] Failed to parse stored profile:', e);
+  }
+  return DEFAULT_PROFILE;
 };
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const [profile, setProfile] = useState(getStoredProfile);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
+
+  // Apply theme to DOM and listen for system theme changes
+  useEffect(() => {
+    const currentTheme = profile.theme || 'dark';
+
+    const applyTheme = (themeMode) => {
+      let resolved = themeMode;
+      if (themeMode === 'system') {
+        resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
+      }
+
+      document.documentElement.setAttribute('data-theme', resolved);
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(resolved);
+
+      if (document.body) {
+        document.body.classList.remove('light', 'dark');
+        document.body.classList.add(resolved);
+      }
+    };
+
+    applyTheme(currentTheme);
+
+    if (currentTheme === 'system' && window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => applyTheme('system');
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+  }, [profile.theme]);
+
+  // Synchronize document direction for RTL locales (Arabic & Urdu)
+  useEffect(() => {
+    const isRtl = profile.locale === 'ar-AE' || profile.locale === 'ur-PK';
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+    document.documentElement.lang = profile.locale || 'en-US';
+  }, [profile.locale]);
 
   // Fetch or fallback profile from Supabase
   const loadProfile = useCallback(async (userId, userMetadata = {}) => {
@@ -33,29 +86,40 @@ export function AuthProvider({ children }) {
         console.warn('[AuthContext] Error fetching profile:', error.message);
       }
 
+      const stored = getStoredProfile();
+
       if (data) {
-        setProfile({
+        const loadedProfile = {
           id: data.id,
-          fullName: data.full_name || userMetadata.full_name || 'User',
+          fullName: data.full_name || userMetadata.full_name || stored.fullName || 'User',
           avatarUrl: data.avatar_url || '',
-          defaultCurrency: data.default_currency || 'USD',
-          locale: data.locale || 'en-US',
-          numberFormat: data.number_format || 'intl',
-          dateFormat: data.date_format || 'YYYY-MM-DD',
-          theme: data.theme || 'dark',
-        });
+          defaultCurrency: data.default_currency || stored.defaultCurrency || 'USD',
+          locale: data.locale || stored.locale || 'en-US',
+          numberFormat: data.number_format || stored.numberFormat || 'intl',
+          dateFormat: data.date_format || stored.dateFormat || 'YYYY-MM-DD',
+          theme: data.theme || stored.theme || 'dark',
+          onboardingCompleted: data.onboarding_completed ?? stored.onboardingCompleted ?? true,
+        };
+        setProfile(loadedProfile);
+        try {
+          localStorage.setItem('expense_pro_profile', JSON.stringify(loadedProfile));
+        } catch {}
       } else {
-        // Fallback to metadata if DB table or trigger is still being populated
-        setProfile({
+        const fallbackProfile = {
           id: userId,
-          fullName: userMetadata.full_name || userMetadata.name || 'User',
+          fullName: userMetadata.full_name || userMetadata.name || stored.fullName || 'User',
           avatarUrl: userMetadata.avatar_url || '',
-          defaultCurrency: userMetadata.default_currency || 'USD',
-          locale: userMetadata.locale || 'en-US',
-          numberFormat: userMetadata.number_format || 'intl',
-          dateFormat: userMetadata.date_format || 'YYYY-MM-DD',
-          theme: userMetadata.theme || 'dark',
-        });
+          defaultCurrency: userMetadata.default_currency || stored.defaultCurrency || 'USD',
+          locale: userMetadata.locale || stored.locale || 'en-US',
+          numberFormat: userMetadata.number_format || stored.numberFormat || 'intl',
+          dateFormat: userMetadata.date_format || stored.dateFormat || 'YYYY-MM-DD',
+          theme: userMetadata.theme || stored.theme || 'dark',
+          onboardingCompleted: userMetadata.onboarding_completed ?? stored.onboardingCompleted ?? true,
+        };
+        setProfile(fallbackProfile);
+        try {
+          localStorage.setItem('expense_pro_profile', JSON.stringify(fallbackProfile));
+        } catch {}
       }
     } catch (err) {
       console.error('[AuthContext] Exception while loading profile:', err);
@@ -70,7 +134,7 @@ export function AuthProvider({ children }) {
       if (session?.user) {
         loadProfile(session.user.id, session.user.user_metadata);
       } else {
-        setProfile(DEFAULT_PROFILE);
+        setProfile(getStoredProfile());
       }
       setLoading(false);
     });
@@ -84,7 +148,7 @@ export function AuthProvider({ children }) {
       if (newSession?.user) {
         await loadProfile(newSession.user.id, newSession.user.user_metadata);
       } else {
-        setProfile(DEFAULT_PROFILE);
+        setProfile(getStoredProfile());
       }
       setLoading(false);
     });
@@ -93,13 +157,6 @@ export function AuthProvider({ children }) {
       subscription?.unsubscribe();
     };
   }, [loadProfile]);
-
-  // Synchronize document direction for RTL locales (Arabic & Urdu)
-  useEffect(() => {
-    const isRtl = profile.locale === 'ar-AE' || profile.locale === 'ur-PK';
-    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
-    document.documentElement.lang = profile.locale || 'en-US';
-  }, [profile.locale]);
 
   const signUp = async ({ email, password, fullName, defaultCurrency = 'USD' }) => {
     setAuthError(null);
@@ -143,6 +200,9 @@ export function AuthProvider({ children }) {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       setProfile(DEFAULT_PROFILE);
+      try {
+        localStorage.removeItem('expense_pro_profile');
+      } catch {}
       return { error: null };
     } catch (err) {
       setAuthError(err.message);
@@ -163,8 +223,23 @@ export function AuthProvider({ children }) {
   };
 
   const updateProfile = async (updates) => {
-    if (!user) return { error: new Error('User not authenticated') };
     setAuthError(null);
+    const updated = { ...profile, ...updates };
+    setProfile(updated);
+
+    // Save to localStorage immediately
+    try {
+      localStorage.setItem('expense_pro_profile', JSON.stringify(updated));
+      if (updates.theme) {
+        localStorage.setItem('expense_pro_theme', updates.theme);
+      }
+    } catch (e) {
+      console.warn('[AuthContext] Failed to persist profile to localStorage:', e);
+    }
+
+    if (!user) return { data: updated, error: null };
+
+    // Remote sync for authenticated users
     try {
       const dbPayload = {};
       if (updates.fullName !== undefined) dbPayload.full_name = updates.fullName;
@@ -174,26 +249,40 @@ export function AuthProvider({ children }) {
       if (updates.numberFormat !== undefined) dbPayload.number_format = updates.numberFormat;
       if (updates.dateFormat !== undefined) dbPayload.date_format = updates.dateFormat;
       if (updates.theme !== undefined) dbPayload.theme = updates.theme;
+      if (updates.onboardingCompleted !== undefined) dbPayload.onboarding_completed = updates.onboardingCompleted;
 
-      // Update in Supabase profiles table
       const { error } = await supabase
         .from('profiles')
         .upsert({ id: user.id, ...dbPayload });
 
       if (error) throw error;
-
-      // Update local state
-      setProfile((prev) => ({
-        ...prev,
-        ...updates,
-      }));
-
       return { error: null };
     } catch (err) {
-      console.error('[AuthContext] Update profile error:', err);
-      // Still update local state for responsive UI if network/table is in-migration
-      setProfile((prev) => ({ ...prev, ...updates }));
+      console.warn('[AuthContext] Remote profile update warning:', err.message);
       return { error: err };
+    }
+  };
+
+  const toggleTheme = () => {
+    const nextTheme = profile.theme === 'light' ? 'dark' : 'light';
+    updateProfile({ theme: nextTheme });
+  };
+
+  const markOnboardingComplete = async () => {
+    try {
+      localStorage.setItem('expense_pro_onboarding_completed', 'true');
+      localStorage.setItem('expense_pro_onboarding_dismissed', 'true');
+    } catch {}
+
+    if (user) {
+      try {
+        await supabase.rpc('complete_user_onboarding', { p_user_id: user.id });
+      } catch (err) {
+        console.warn('[AuthContext] complete_user_onboarding RPC notice:', err);
+      }
+      return updateProfile({ onboardingCompleted: true });
+    } else {
+      return updateProfile({ onboardingCompleted: true });
     }
   };
 
@@ -211,6 +300,8 @@ export function AuthProvider({ children }) {
         signOut,
         resetPassword,
         updateProfile,
+        toggleTheme,
+        markOnboardingComplete,
       }}
     >
       {children}

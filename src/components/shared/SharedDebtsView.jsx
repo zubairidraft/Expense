@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSharedDebts } from '../../context/SharedDebtsContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { useAccounts } from '../../context/AccountContext';
 import MoneyDisplay from '../ui/MoneyDisplay';
 import StatCard from '../ui/StatCard';
 
@@ -22,7 +23,20 @@ export default function SharedDebtsView({
     payInstallment,
   } = useSharedDebts();
 
-  const [activeTab, setActiveTab] = useState('shared'); // 'shared' | 'debts' | 'installments' | 'contacts'
+  const { accounts = [] } = useAccounts() || {};
+  const [payFrom, setPayFrom] = useState({}); // planId -> accountId
+  const [installmentError, setInstallmentError] = useState('');
+
+  const handlePayInstallment = async (planId) => {
+    setInstallmentError('');
+    try {
+      await payInstallment(planId, payFrom[planId] || null);
+    } catch (err) {
+      setInstallmentError(err.message || 'Could not record the installment payment.');
+    }
+  };
+
+  const [activeTab, setActiveTab] = useState('debts'); // 'debts' | 'shared' | 'installments' | 'contacts'
 
   const currencyCode = currentWorkspace?.base_currency || 'USD';
 
@@ -80,8 +94,8 @@ export default function SharedDebtsView({
         <section
           style={{
             marginTop: '1.5rem',
-            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.08))',
-            border: '1px solid rgba(99, 102, 241, 0.25)',
+            background: 'linear-gradient(135deg, rgba(var(--md-primary-rgb), 0.12), rgba(168, 85, 247, 0.08))',
+            border: '1px solid rgba(var(--md-primary-rgb), 0.25)',
             borderRadius: '12px',
             padding: '1.25rem',
           }}
@@ -90,10 +104,10 @@ export default function SharedDebtsView({
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '1.3rem' }}>⚡</span>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: '#f8fafc' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: 'var(--md-on-surface)' }}>
                   Smart Settle-Up Debt Simplification
                 </h3>
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--md-on-surface-variant)' }}>
                   Graph algorithm minimized group cash flows into {simplifiedSettlements.length} direct transfers
                 </span>
               </div>
@@ -111,8 +125,8 @@ export default function SharedDebtsView({
                 <div
                   key={idx}
                   style={{
-                    background: 'rgba(15, 23, 42, 0.65)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    background: 'rgba(var(--md-surface-rgb), 0.65)',
+                    border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
                     borderRadius: '8px',
                     padding: '0.75rem 1rem',
                     display: 'flex',
@@ -121,11 +135,11 @@ export default function SharedDebtsView({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-                    <span style={{ fontWeight: 600, color: '#f59e0b' }}>{fromName}</span>
-                    <span style={{ color: '#64748b' }}>➔</span>
-                    <span style={{ fontWeight: 600, color: '#10b981' }}>{toName}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--md-warning)' }}>{fromName}</span>
+                    <span style={{ color: 'var(--md-on-surface-variant)' }}>➔</span>
+                    <span style={{ fontWeight: 600, color: 'var(--md-success)' }}>{toName}</span>
                   </div>
-                  <span style={{ fontWeight: 700, color: '#38bdf8', fontSize: '0.95rem' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--md-info)', fontSize: '0.95rem' }}>
                     ${s.amount}
                   </span>
                 </div>
@@ -138,7 +152,7 @@ export default function SharedDebtsView({
       {/* Main Hub Tabs & Actions */}
       <section className="panel" style={{ marginTop: '1.5rem' }}>
         <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div className="tab-pill-switcher" style={{ display: 'flex', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.04)', padding: '0.3rem', borderRadius: '10px' }}>
+          <div className="tab-pill-switcher" style={{ display: 'flex', gap: '0.4rem', background: 'rgba(var(--md-on-surface-rgb), 0.04)', padding: '0.3rem', borderRadius: '10px' }}>
             <button
               type="button"
               className={`btn-pill ${activeTab === 'shared' ? 'active' : ''}`}
@@ -147,8 +161,8 @@ export default function SharedDebtsView({
                 padding: '0.45rem 0.9rem',
                 borderRadius: '8px',
                 border: 'none',
-                background: activeTab === 'shared' ? 'var(--color-primary, #6366f1)' : 'transparent',
-                color: '#fff',
+                background: activeTab === 'shared' ? 'var(--color-primary, var(--md-primary))' : 'transparent',
+                color: 'var(--md-on-primary)',
                 fontSize: '0.85rem',
                 cursor: 'pointer',
                 fontWeight: 500,
@@ -164,8 +178,8 @@ export default function SharedDebtsView({
                 padding: '0.45rem 0.9rem',
                 borderRadius: '8px',
                 border: 'none',
-                background: activeTab === 'debts' ? 'var(--color-primary, #6366f1)' : 'transparent',
-                color: '#fff',
+                background: activeTab === 'debts' ? 'var(--color-primary, var(--md-primary))' : 'transparent',
+                color: 'var(--md-on-primary)',
                 fontSize: '0.85rem',
                 cursor: 'pointer',
                 fontWeight: 500,
@@ -181,8 +195,8 @@ export default function SharedDebtsView({
                 padding: '0.45rem 0.9rem',
                 borderRadius: '8px',
                 border: 'none',
-                background: activeTab === 'installments' ? 'var(--color-primary, #6366f1)' : 'transparent',
-                color: '#fff',
+                background: activeTab === 'installments' ? 'var(--color-primary, var(--md-primary))' : 'transparent',
+                color: 'var(--md-on-primary)',
                 fontSize: '0.85rem',
                 cursor: 'pointer',
                 fontWeight: 500,
@@ -198,8 +212,8 @@ export default function SharedDebtsView({
                 padding: '0.45rem 0.9rem',
                 borderRadius: '8px',
                 border: 'none',
-                background: activeTab === 'contacts' ? 'var(--color-primary, #6366f1)' : 'transparent',
-                color: '#fff',
+                background: activeTab === 'contacts' ? 'var(--color-primary, var(--md-primary))' : 'transparent',
+                color: 'var(--md-on-primary)',
                 fontSize: '0.85rem',
                 cursor: 'pointer',
                 fontWeight: 500,
@@ -254,8 +268,8 @@ export default function SharedDebtsView({
                   <div
                     key={exp.id}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      background: 'rgba(var(--md-on-surface-rgb), 0.03)',
+                      border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
                       borderRadius: '10px',
                       padding: '1.25rem',
                     }}
@@ -263,7 +277,7 @@ export default function SharedDebtsView({
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: '#f8fafc' }}>
+                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: 'var(--md-on-surface)' }}>
                             {exp.title}
                           </h4>
                           <span
@@ -271,8 +285,8 @@ export default function SharedDebtsView({
                               fontSize: '0.75rem',
                               padding: '0.15rem 0.5rem',
                               borderRadius: '4px',
-                              background: 'rgba(99, 102, 241, 0.2)',
-                              color: '#a5b4fc',
+                              background: 'rgba(var(--md-primary-rgb), 0.2)',
+                              color: 'var(--md-primary)',
                               textTransform: 'uppercase',
                               fontWeight: 600,
                             }}
@@ -280,21 +294,21 @@ export default function SharedDebtsView({
                             {exp.split_method} split
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '0.3rem' }}>
-                          Payer: <strong style={{ color: '#e2e8f0' }}>{payerName}</strong> • {exp.created_at ? new Date(exp.created_at).toLocaleDateString() : 'Recent'}
+                        <div style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)', marginTop: '0.3rem' }}>
+                          Payer: <strong style={{ color: 'var(--md-on-surface)' }}>{payerName}</strong> • {exp.created_at ? new Date(exp.created_at).toLocaleDateString() : 'Recent'}
                         </div>
                       </div>
 
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc' }}>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--md-on-surface)' }}>
                           <MoneyDisplay amount={exp.total_amount} currencyCode={exp.currency || currencyCode} />
                         </div>
                       </div>
                     </div>
 
                     {/* Participant Splits */}
-                    <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '0.75rem' }}>
-                      <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(var(--md-on-surface-rgb), 0.05)', paddingTop: '0.75rem' }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--md-on-surface-variant)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         Participant Breakdown
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
@@ -306,23 +320,23 @@ export default function SharedDebtsView({
                             <div
                               key={s.id}
                               style={{
-                                background: 'rgba(15, 23, 42, 0.4)',
+                                background: 'rgba(var(--md-on-surface-rgb), 0.4)',
                                 padding: '0.5rem 0.75rem',
                                 borderRadius: '6px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                border: '1px solid rgba(255, 255, 255, 0.04)',
+                                border: '1px solid rgba(var(--md-on-surface-rgb), 0.04)',
                               }}
                             >
                               <div>
-                                <div style={{ fontSize: '0.85rem', fontWeight: 500, color: '#f1f5f9' }}>{contactName}</div>
-                                <div style={{ fontSize: '0.78rem', color: s.settled ? '#10b981' : '#f59e0b' }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--md-on-surface)' }}>{contactName}</div>
+                                <div style={{ fontSize: '0.78rem', color: s.settled ? 'var(--md-success)' : 'var(--md-warning)' }}>
                                   {s.settled ? '✓ Settled' : 'Pending repayment'}
                                 </div>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#f8fafc' }}>
+                                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--md-on-surface)' }}>
                                   ${s.share_amount || s.shareAmount}
                                 </span>
                                 {!s.settled && (
@@ -330,7 +344,7 @@ export default function SharedDebtsView({
                                     type="button"
                                     onClick={() => settleExpenseSplit(s.id)}
                                     className="btn-text"
-                                    style={{ fontSize: '0.72rem', color: '#10b981', border: '1px solid #10b981', padding: '0.1rem 0.35rem', borderRadius: '4px' }}
+                                    style={{ fontSize: '0.72rem', color: 'var(--md-success)', border: '1px solid var(--md-success)', padding: '0.1rem 0.35rem', borderRadius: '4px' }}
                                     title="Mark settled"
                                   >
                                     Settle
@@ -372,8 +386,8 @@ export default function SharedDebtsView({
                   <div
                     key={d.id}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      background: 'rgba(var(--md-on-surface-rgb), 0.03)',
+                      border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
                       borderRadius: '10px',
                       padding: '1.25rem',
                       display: 'flex',
@@ -389,8 +403,8 @@ export default function SharedDebtsView({
                           width: '42px',
                           height: '42px',
                           borderRadius: '10px',
-                          background: isLent ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                          color: isLent ? '#10b981' : '#f59e0b',
+                          background: isLent ? 'rgba(var(--md-success-rgb), 0.15)' : 'rgba(var(--md-warning-rgb), 0.15)',
+                          color: isLent ? 'var(--md-success)' : 'var(--md-warning)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -401,7 +415,7 @@ export default function SharedDebtsView({
                       </div>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                          <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#f8fafc' }}>
+                          <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--md-on-surface)' }}>
                             {d.contact?.name || 'Contact'}
                           </h4>
                           <span
@@ -409,25 +423,25 @@ export default function SharedDebtsView({
                               fontSize: '0.75rem',
                               padding: '0.15rem 0.5rem',
                               borderRadius: '4px',
-                              background: isLent ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                              color: isLent ? '#10b981' : '#f59e0b',
+                              background: isLent ? 'rgba(var(--md-success-rgb), 0.2)' : 'rgba(var(--md-warning-rgb), 0.2)',
+                              color: isLent ? 'var(--md-success)' : 'var(--md-warning)',
                               fontWeight: 600,
                             }}
                           >
                             {isLent ? 'Lent (Receivable)' : 'Borrowed (Payable)'}
                           </span>
                           {d.status === 'settled' && (
-                            <span style={{ fontSize: '0.72rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--md-success)', background: 'rgba(var(--md-success-rgb), 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
                               Settled
                             </span>
                           )}
                           {isOverdue && (
-                            <span style={{ fontSize: '0.72rem', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--md-error)', background: 'rgba(var(--md-error-rgb), 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
                               Overdue
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+                        <div style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)', marginTop: '0.25rem' }}>
                           {d.notes || 'Personal loan agreement'} • Due: {d.due_date ? new Date(d.due_date).toLocaleDateString() : 'No deadline'}
                         </div>
                       </div>
@@ -435,10 +449,10 @@ export default function SharedDebtsView({
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '1.15rem', fontWeight: 700, color: isLent ? '#10b981' : '#f59e0b' }}>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 700, color: isLent ? 'var(--md-success)' : 'var(--md-warning)' }}>
                           ${remaining.toFixed(2)}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--md-on-surface-variant)' }}>
                           of ${principal.toFixed(2)} principal
                         </div>
                       </div>
@@ -464,6 +478,11 @@ export default function SharedDebtsView({
         {/* Tab 3: Installments & BNPL */}
         {activeTab === 'installments' && (
           <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {installmentError && (
+              <div role="alert" style={{ color: 'var(--md-error)', fontSize: '0.85rem' }}>
+                {installmentError}
+              </div>
+            )}
             {installmentPlans.length === 0 ? (
               <div className="empty-state">
                 <span className="empty-icon">💳</span>
@@ -484,8 +503,8 @@ export default function SharedDebtsView({
                   <div
                     key={plan.id}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      background: 'rgba(var(--md-on-surface-rgb), 0.03)',
+                      border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
                       borderRadius: '10px',
                       padding: '1.25rem',
                     }}
@@ -493,7 +512,7 @@ export default function SharedDebtsView({
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: '#f8fafc' }}>
+                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: 'var(--md-on-surface)' }}>
                             {plan.name}
                           </h4>
                           <span
@@ -501,38 +520,56 @@ export default function SharedDebtsView({
                               fontSize: '0.75rem',
                               padding: '0.15rem 0.5rem',
                               borderRadius: '4px',
-                              background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)',
-                              color: isCompleted ? '#10b981' : '#a5b4fc',
+                              background: isCompleted ? 'rgba(var(--md-success-rgb), 0.2)' : 'rgba(var(--md-primary-rgb), 0.2)',
+                              color: isCompleted ? 'var(--md-success)' : 'var(--md-primary)',
                               fontWeight: 600,
                             }}
                           >
                             {isCompleted ? 'Completed' : `${plan.frequency} EMI`}
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-                          Next Due: <strong style={{ color: '#e2e8f0' }}>{plan.next_due_date || plan.nextDueDate || 'N/A'}</strong> • Total: ${plan.total_amount || plan.totalAmount}
+                        <div style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)', marginTop: '0.25rem' }}>
+                          Next Due: <strong style={{ color: 'var(--md-on-surface)' }}>{plan.next_due_date || plan.nextDueDate || 'N/A'}</strong> • Total: ${plan.total_amount || plan.totalAmount}
                         </div>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#38bdf8' }}>
+                          <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--md-info)' }}>
                             ${plan.installment_amount || plan.installmentAmount} / {plan.frequency === 'monthly' ? 'mo' : plan.frequency}
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--md-on-surface-variant)' }}>
                             {paidInstallments} of {totalInstallments} paid ({progressPct}%)
                           </div>
                         </div>
 
                         {!isCompleted && (
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem' }}
-                            onClick={() => payInstallment(plan.id)}
-                          >
-                            Pay Due
-                          </button>
+                          <>
+                            <select
+                              className="form-select"
+                              aria-label="Pay from account"
+                              value={payFrom[plan.id] || ''}
+                              onChange={(e) => setPayFrom((prev) => ({ ...prev, [plan.id]: e.target.value }))}
+                              style={{ maxWidth: '170px', fontSize: '0.8rem', padding: '0.4rem' }}
+                            >
+                              <option value="">Mark paid only (no account)</option>
+                              {accounts
+                                .filter((a) => a.nature === 'asset')
+                                .map((a) => (
+                                  <option key={a.id} value={a.id}>
+                                    {a.name} ({a.currency})
+                                  </option>
+                                ))}
+                            </select>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem' }}
+                              onClick={() => handlePayInstallment(plan.id)}
+                            >
+                              Pay Due
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -543,7 +580,7 @@ export default function SharedDebtsView({
                         marginTop: '1rem',
                         height: '6px',
                         borderRadius: '999px',
-                        background: 'rgba(255, 255, 255, 0.08)',
+                        background: 'rgba(var(--md-on-surface-rgb), 0.08)',
                         overflow: 'hidden',
                       }}
                     >
@@ -552,7 +589,7 @@ export default function SharedDebtsView({
                           height: '100%',
                           width: `${progressPct}%`,
                           borderRadius: '999px',
-                          background: isCompleted ? '#10b981' : 'linear-gradient(90deg, #6366f1, #38bdf8)',
+                          background: isCompleted ? 'var(--md-success)' : 'linear-gradient(90deg, var(--md-primary), var(--md-info))',
                           transition: 'width 0.4s ease',
                         }}
                       />
@@ -581,8 +618,8 @@ export default function SharedDebtsView({
                 <div
                   key={c.id}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    background: 'rgba(var(--md-on-surface-rgb), 0.03)',
+                    border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
                     borderRadius: '10px',
                     padding: '1rem',
                   }}
@@ -593,8 +630,8 @@ export default function SharedDebtsView({
                         width: '36px',
                         height: '36px',
                         borderRadius: '50%',
-                        background: 'rgba(99, 102, 241, 0.2)',
-                        color: '#a5b4fc',
+                        background: 'rgba(var(--md-primary-rgb), 0.2)',
+                        color: 'var(--md-primary)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -605,12 +642,12 @@ export default function SharedDebtsView({
                       {c.name.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: '0.95rem' }}>{c.name}</div>
-                      <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{c.notes || 'Peer Contact'}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--md-on-surface)', fontSize: '0.95rem' }}>{c.name}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--md-on-surface-variant)' }}>{c.notes || 'Peer Contact'}</div>
                     </div>
                   </div>
-                  {c.phone && <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>📞 {c.phone}</div>}
-                  {c.email && <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>✉️ {c.email}</div>}
+                  {c.phone && <div style={{ fontSize: '0.8rem', color: 'var(--md-on-surface-variant)' }}>📞 {c.phone}</div>}
+                  {c.email && <div style={{ fontSize: '0.8rem', color: 'var(--md-on-surface-variant)' }}>✉️ {c.email}</div>}
                 </div>
               ))
             )}

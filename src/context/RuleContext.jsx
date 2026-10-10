@@ -82,7 +82,7 @@ export function RuleProvider({ children }) {
 
       if (rErr) throw rErr;
 
-      setRules(data && data.length > 0 ? data : DEFAULT_GUEST_RULES);
+      setRules(data || []);
 
       // Fetch past reconciliations
       const { data: recData } = await supabase
@@ -95,7 +95,8 @@ export function RuleProvider({ children }) {
     } catch (err) {
       console.warn('[RuleContext] Error fetching rules:', err.message);
       setError(err.message);
-      setRules(DEFAULT_GUEST_RULES);
+      setRules([]);
+      setReconciliations([]);
     } finally {
       setLoading(false);
     }

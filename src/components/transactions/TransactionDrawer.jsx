@@ -7,6 +7,7 @@ export default function TransactionDrawer({
   isOpen,
   onClose,
   onOpenAttachReceipt,
+  onEditTransfer,
 }) {
   const { deleteTransaction, updateStatus } = useTransactions();
   const { getAttachmentsForTransaction } = useAttachments();
@@ -52,6 +53,35 @@ export default function TransactionDrawer({
 
         {/* Drawer Body */}
         <div className="drawer-body">
+          {/* Foreign Transaction Alert Banner */}
+          {transaction.is_foreign && (
+            <div
+              className="foreign-tx-banner"
+              style={{
+                padding: '0.85rem 1rem',
+                borderRadius: '8px',
+                background: 'rgba(245, 158, 11, 0.12)',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                color: '#d97706',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.65rem',
+                lineHeight: 1.45,
+              }}
+            >
+              <span style={{ fontSize: '1.2rem', marginTop: '-2px' }}>🔒</span>
+              <div>
+                <strong style={{ display: 'block', fontSize: '0.88rem', color: '#b45309' }}>
+                  Originating Workspace: {transaction.origin_workspace_name || 'Other Workspace'}
+                </strong>
+                <span style={{ fontSize: '0.8rem', color: 'var(--md-on-surface-variant)' }}>
+                  This transaction was posted in another workspace on this shared account. It is read-only here and can only be edited or deleted in its originating workspace.
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Notes Section */}
           {transaction.notes && (
             <div className="drawer-section">
@@ -155,7 +185,7 @@ export default function TransactionDrawer({
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#38bdf8',
+                    color: 'var(--md-info)',
                     cursor: 'pointer',
                     fontSize: '0.8rem',
                     fontWeight: 600,
@@ -166,7 +196,7 @@ export default function TransactionDrawer({
               )}
             </div>
             {txAttachments.length === 0 ? (
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted, #94a3b8)', margin: '0.4rem 0 0' }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted, var(--md-on-surface-variant))', margin: '0.4rem 0 0' }}>
                 No physical receipt or document linked yet.
               </p>
             ) : (
@@ -177,8 +207,8 @@ export default function TransactionDrawer({
                     style={{
                       padding: '0.5rem 0.75rem',
                       borderRadius: '8px',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'rgba(var(--md-on-surface-rgb), 0.03)',
+                      border: '1px solid rgba(var(--md-on-surface-rgb), 0.08)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -187,7 +217,7 @@ export default function TransactionDrawer({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span>🧾</span>
                       <div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f8fafc' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--md-on-surface)' }}>
                           {att.file_name}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
@@ -207,19 +237,28 @@ export default function TransactionDrawer({
             <div className="status-button-group">
               <button
                 className={`status-btn ${transaction.status === 'pending' ? 'active' : ''}`}
-                onClick={() => handleStatusChange('pending')}
+                disabled={transaction.is_foreign}
+                onClick={() => !transaction.is_foreign && handleStatusChange('pending')}
+                style={transaction.is_foreign ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                title={transaction.is_foreign ? 'Originating workspace controls status' : undefined}
               >
                 ⏳ Pending
               </button>
               <button
                 className={`status-btn ${transaction.status === 'cleared' ? 'active' : ''}`}
-                onClick={() => handleStatusChange('cleared')}
+                disabled={transaction.is_foreign}
+                onClick={() => !transaction.is_foreign && handleStatusChange('cleared')}
+                style={transaction.is_foreign ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                title={transaction.is_foreign ? 'Originating workspace controls status' : undefined}
               >
                 ✓ Cleared
               </button>
               <button
                 className={`status-btn ${transaction.status === 'reconciled' ? 'active' : ''}`}
-                onClick={() => handleStatusChange('reconciled')}
+                disabled={transaction.is_foreign}
+                onClick={() => !transaction.is_foreign && handleStatusChange('reconciled')}
+                style={transaction.is_foreign ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                title={transaction.is_foreign ? 'Originating workspace controls status' : undefined}
               >
                 🔒 Reconciled
               </button>
@@ -229,8 +268,28 @@ export default function TransactionDrawer({
 
         {/* Drawer Footer Actions */}
         <div className="drawer-footer">
-          <button className="btn btn-danger" onClick={handleDelete}>
-            🗑️ Delete Transaction
+          {transaction.type === 'transfer' && !transaction.is_foreign && onEditTransfer && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                onClose();
+                onEditTransfer(transaction);
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <span>✏️</span> Edit Transfer
+            </button>
+          )}
+
+          <button
+            className="btn btn-danger"
+            disabled={transaction.is_foreign}
+            onClick={handleDelete}
+            style={transaction.is_foreign ? { opacity: 0.35, cursor: 'not-allowed' } : undefined}
+            title={transaction.is_foreign ? `Sirf ${transaction.origin_workspace_name || 'originating'} workspace se delete ho sakti hai` : 'Delete transaction'}
+          >
+            {transaction.is_foreign ? '🔒 Delete Disabled (Foreign Entry)' : '🗑️ Delete Transaction'}
           </button>
           <button className="btn btn-secondary" onClick={onClose}>
             Close

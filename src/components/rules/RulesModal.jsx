@@ -171,9 +171,9 @@ export default function RulesModal({ isOpen, onClose }) {
             style={{
               padding: '0.75rem 1rem',
               borderRadius: '8px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#f87171',
+              background: 'rgba(var(--md-error-rgb), 0.15)',
+              border: '1px solid rgba(var(--md-error-rgb), 0.3)',
+              color: 'var(--md-error)',
               marginBottom: '1rem',
               fontSize: '0.875rem',
             }}
@@ -187,9 +187,9 @@ export default function RulesModal({ isOpen, onClose }) {
             style={{
               padding: '0.75rem 1rem',
               borderRadius: '8px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              color: '#34d399',
+              background: 'rgba(var(--md-success-rgb), 0.15)',
+              border: '1px solid rgba(var(--md-success-rgb), 0.3)',
+              color: 'var(--md-success)',
               marginBottom: '1rem',
               fontSize: '0.875rem',
             }}
@@ -206,7 +206,7 @@ export default function RulesModal({ isOpen, onClose }) {
                 style={{
                   textAlign: 'center',
                   padding: '3rem 1rem',
-                  color: 'var(--text-muted, #94a3b8)',
+                  color: 'var(--text-muted, var(--md-on-surface-variant))',
                 }}
               >
                 <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⚡</div>
@@ -227,8 +227,8 @@ export default function RulesModal({ isOpen, onClose }) {
                   style={{
                     padding: '1rem',
                     borderRadius: '12px',
-                    background: rule.active ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.01)',
-                    border: rule.active ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(255, 255, 255, 0.04)',
+                    background: rule.active ? 'rgba(var(--md-on-surface-rgb), 0.03)' : 'rgba(var(--md-on-surface-rgb), 0.01)',
+                    border: rule.active ? '1px solid rgba(var(--md-on-surface-rgb), 0.08)' : '1px solid rgba(var(--md-on-surface-rgb), 0.04)',
                     opacity: rule.active ? 1 : 0.6,
                     display: 'flex',
                     flexDirection: 'column',
@@ -242,14 +242,14 @@ export default function RulesModal({ isOpen, onClose }) {
                           fontSize: '0.75rem',
                           padding: '0.2rem 0.5rem',
                           borderRadius: '6px',
-                          background: 'rgba(99, 102, 241, 0.2)',
-                          color: '#818cf8',
+                          background: 'rgba(var(--md-primary-rgb), 0.2)',
+                          color: 'var(--md-primary)',
                           fontWeight: 600,
                         }}
                       >
                         Priority #{rule.priority ?? 100}
                       </span>
-                      <strong style={{ fontSize: '1rem', color: 'var(--text-main, #f8fafc)' }}>
+                      <strong style={{ fontSize: '1rem', color: 'var(--text-main, var(--md-on-surface))' }}>
                         {rule.name}
                       </strong>
                     </div>
@@ -264,8 +264,8 @@ export default function RulesModal({ isOpen, onClose }) {
                           borderRadius: '6px',
                           border: 'none',
                           cursor: 'pointer',
-                          background: rule.active ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                          color: rule.active ? '#34d399' : '#94a3b8',
+                          background: rule.active ? 'rgba(var(--md-success-rgb), 0.2)' : 'rgba(var(--md-on-surface-rgb), 0.1)',
+                          color: rule.active ? 'var(--md-success)' : 'var(--md-on-surface-variant)',
                         }}
                       >
                         {rule.active ? 'Active' : 'Disabled'}
@@ -276,7 +276,7 @@ export default function RulesModal({ isOpen, onClose }) {
                         style={{
                           background: 'transparent',
                           border: 'none',
-                          color: '#ef4444',
+                          color: 'var(--md-error)',
                           cursor: 'pointer',
                           padding: '0.3rem',
                         }}
@@ -295,14 +295,14 @@ export default function RulesModal({ isOpen, onClose }) {
                         style={{
                           padding: '0.25rem 0.6rem',
                           borderRadius: '6px',
-                          background: 'rgba(56, 189, 248, 0.12)',
-                          color: '#38bdf8',
+                          background: 'rgba(var(--md-info-rgb), 0.12)',
+                          color: 'var(--md-info)',
                         }}
                       >
                         IF {c.field} {c.operator} &ldquo;{c.value}&rdquo;
                       </span>
                     ))}
-                    <span style={{ color: 'var(--text-muted, #94a3b8)', alignSelf: 'center' }}>➔</span>
+                    <span style={{ color: 'var(--text-muted, var(--md-on-surface-variant))', alignSelf: 'center' }}>➔</span>
                     {rule.actions?.map((a, i) => (
                       <span
                         key={i}
@@ -310,7 +310,7 @@ export default function RulesModal({ isOpen, onClose }) {
                           padding: '0.25rem 0.6rem',
                           borderRadius: '6px',
                           background: 'rgba(168, 85, 247, 0.12)',
-                          color: '#c084fc',
+                          color: 'var(--md-primary)',
                         }}
                       >
                         {a.type === 'set_category' && `Assign: ${getCategoryName(a.value)}`}
@@ -366,8 +366,8 @@ export default function RulesModal({ isOpen, onClose }) {
               style={{
                 padding: '1rem',
                 borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                background: 'rgba(var(--md-on-surface-rgb), 0.02)',
+                border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
               }}
             >
               <div
@@ -378,7 +378,7 @@ export default function RulesModal({ isOpen, onClose }) {
                   marginBottom: '0.75rem',
                 }}
               >
-                <strong style={{ fontSize: '0.9rem', color: '#38bdf8' }}>
+                <strong style={{ fontSize: '0.9rem', color: 'var(--md-info)' }}>
                   Conditions (ALL must match)
                 </strong>
                 <button
@@ -387,7 +387,7 @@ export default function RulesModal({ isOpen, onClose }) {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#38bdf8',
+                    color: 'var(--md-info)',
                     cursor: 'pointer',
                     fontSize: '0.8rem',
                   }}
@@ -445,7 +445,7 @@ export default function RulesModal({ isOpen, onClose }) {
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#ef4444',
+                          color: 'var(--md-error)',
                           cursor: 'pointer',
                         }}
                       >
@@ -462,8 +462,8 @@ export default function RulesModal({ isOpen, onClose }) {
               style={{
                 padding: '1rem',
                 borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                background: 'rgba(var(--md-on-surface-rgb), 0.02)',
+                border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
               }}
             >
               <div
@@ -474,7 +474,7 @@ export default function RulesModal({ isOpen, onClose }) {
                   marginBottom: '0.75rem',
                 }}
               >
-                <strong style={{ fontSize: '0.9rem', color: '#c084fc' }}>
+                <strong style={{ fontSize: '0.9rem', color: 'var(--md-primary)' }}>
                   Actions (Execute on match)
                 </strong>
                 <button
@@ -483,7 +483,7 @@ export default function RulesModal({ isOpen, onClose }) {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#c084fc',
+                    color: 'var(--md-primary)',
                     cursor: 'pointer',
                     fontSize: '0.8rem',
                   }}
@@ -559,7 +559,7 @@ export default function RulesModal({ isOpen, onClose }) {
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#ef4444',
+                          color: 'var(--md-error)',
                           cursor: 'pointer',
                         }}
                       >

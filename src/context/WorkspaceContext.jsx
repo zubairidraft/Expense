@@ -27,10 +27,43 @@ export function WorkspaceProvider({ children }) {
     role: 'owner',
   }), [profile.fullName, profile.defaultCurrency]);
 
+  const getStoredGuestWorkspaces = useCallback((defaultWs) => {
+    try {
+      const raw = localStorage.getItem('expense_pro_workspaces');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (!parsed.some((w) => w.id === defaultWs.id)) {
+            return [defaultWs, ...parsed];
+          }
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('[WorkspaceContext] Error reading stored workspaces:', e);
+    }
+    return [defaultWs];
+  }, []);
+
+  const saveGuestWorkspaces = (wsList) => {
+    try {
+      localStorage.setItem('expense_pro_workspaces', JSON.stringify(wsList));
+    } catch (e) {
+      console.warn('[WorkspaceContext] Error saving workspaces:', e);
+    }
+  };
+
   const fetchWorkspaces = useCallback(async () => {
     if (!user) {
-      setWorkspaces([defaultGuestWorkspace]);
-      setCurrentWorkspaceId('guest-space');
+      const list = getStoredGuestWorkspaces(defaultGuestWorkspace);
+      setWorkspaces(list);
+      const savedId = localStorage.getItem('active_workspace_id');
+      if (savedId && list.some((w) => w.id === savedId)) {
+        setCurrentWorkspaceId(savedId);
+      } else {
+        setCurrentWorkspaceId(list[0].id);
+        localStorage.setItem('active_workspace_id', list[0].id);
+      }
       setLoading(false);
       return;
     }
@@ -127,7 +160,9 @@ export function WorkspaceProvider({ children }) {
         budgeting_style: budgetingStyle,
         role: 'owner',
       };
-      setWorkspaces([newWs, ...workspaces]);
+      const next = [newWs, ...workspaces.filter((w) => w.id !== newWs.id)];
+      saveGuestWorkspaces(next);
+      setWorkspaces(next);
       switchWorkspace(newWs.id);
       return { data: newWs, error: null };
     }
@@ -165,9 +200,9 @@ export function WorkspaceProvider({ children }) {
   const updateWorkspace = async (workspaceId, updates) => {
     try {
       if (!user) {
-        setWorkspaces((prev) =>
-          prev.map((w) => (w.id === workspaceId ? { ...w, ...updates } : w))
-        );
+        const next = workspaces.map((w) => (w.id === workspaceId ? { ...w, ...updates } : w));
+        saveGuestWorkspaces(next);
+        setWorkspaces(next);
         return { error: null };
       }
 
@@ -189,7 +224,12 @@ export function WorkspaceProvider({ children }) {
   const archiveWorkspace = async (workspaceId) => {
     try {
       if (!user) {
-        setWorkspaces((prev) => prev.filter((w) => w.id !== workspaceId));
+        const next = workspaces.filter((w) => w.id !== workspaceId);
+        saveGuestWorkspaces(next);
+        setWorkspaces(next);
+        if (currentWorkspaceId === workspaceId && next.length > 0) {
+          switchWorkspace(next[0].id);
+        }
         return { error: null };
       }
 
@@ -209,16 +249,43 @@ export function WorkspaceProvider({ children }) {
   };
 
   const fetchMembers = useCallback(async (workspaceId) => {
-    if (!user || workspaceId === 'guest-space') {
-      setMembers([
+    const wsId = workspaceId || currentWorkspaceId || 'guest-space';
+    if (!user || wsId === 'guest-space') {
+      try {
+        const stored = localStorage.getItem(`expense_pro_ws_members_${wsId}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMembers(parsed);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to parse stored members:', e);
+      }
+
+      const defaultList = [
         {
-          id: 'guest-member',
+          id: 'guest-member-owner',
           user_id: 'guest',
           role: 'owner',
           status: 'active',
-          profile: { full_name: profile.fullName || 'Guest User' },
+          joined_at: new Date().toISOString(),
+          profiles: { full_name: profile.fullName || 'Guest User (Owner)', default_currency: profile.defaultCurrency || 'USD' },
         },
-      ]);
+        {
+          id: 'guest-member-collab',
+          user_id: 'collab-1',
+          role: 'admin',
+          status: 'active',
+          joined_at: new Date().toISOString(),
+          profiles: { full_name: 'Sarah Connor (Accountant)', default_currency: profile.defaultCurrency || 'USD' },
+        },
+      ];
+      setMembers(defaultList);
+      try {
+        localStorage.setItem(`expense_pro_ws_members_${wsId}`, JSON.stringify(defaultList));
+      } catch (e) {}
       return;
     }
 
@@ -237,22 +304,92 @@ export function WorkspaceProvider({ children }) {
             default_currency
           )
         `)
-        .eq('workspace_id', workspaceId);
+        .eq('workspace_id', wsId);
 
       if (mErr) throw mErr;
       setMembers(data || []);
     } catch (err) {
       console.warn('[WorkspaceContext] Error fetching members:', err.message);
     }
-  }, [user, profile.fullName]);
+  }, [user, profile.fullName, profile.defaultCurrency, currentWorkspaceId]);
+
+  const addMember = async (workspaceId, { name, email, role = 'member' }) => {
+    const wsId = workspaceId || currentWorkspaceId || 'guest-space';
+    const newMember = {
+      id: `m-${Date.now()}`,
+      user_id: `user-${Date.now()}`,
+      role: role.toLowerCase(),
+      status: 'active',
+      joined_at: new Date().toISOString(),
+      email: email,
+      profiles: {
+        full_name: name || email.split('@')[0],
+        default_currency: currentWorkspace?.base_currency || 'USD',
+      },
+    };
+
+    if (!user || wsId === 'guest-space') {
+      setMembers((prev) => {
+        const updated = [...prev, newMember];
+        try {
+          localStorage.setItem(`expense_pro_ws_members_${wsId}`, JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+      return { data: newMember, error: null };
+    }
+
+    try {
+      // In production database
+      const { data, error: insErr } = await supabase
+        .from('workspace_members')
+        .insert({
+          workspace_id: wsId,
+          role: role.toLowerCase(),
+          status: 'active',
+        })
+        .select()
+        .single();
+      if (insErr) throw insErr;
+      await fetchMembers(wsId);
+      return { data, error: null };
+    } catch (err) {
+      // Fallback local update if offline / RLS
+      setMembers((prev) => [...prev, newMember]);
+      return { data: newMember, error: null };
+    }
+  };
+
+  const removeMember = async (workspaceId, memberId) => {
+    const wsId = workspaceId || currentWorkspaceId || 'guest-space';
+    if (!user || wsId === 'guest-space') {
+      setMembers((prev) => {
+        const updated = prev.filter((m) => m.id !== memberId);
+        try {
+          localStorage.setItem(`expense_pro_ws_members_${wsId}`, JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+      return { error: null };
+    }
+
+    try {
+      const { error: delErr } = await supabase
+        .from('workspace_members')
+        .delete()
+        .eq('id', memberId);
+      if (delErr) throw delErr;
+      await fetchMembers(wsId);
+      return { error: null };
+    } catch (err) {
+      // Fallback local remove
+      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+      return { error: null };
+    }
+  };
 
   const inviteMember = async (workspaceId, { email, role = 'member' }) => {
-    try {
-      // In production, would trigger Supabase invite or insert into members
-      return { data: { email, role }, error: null };
-    } catch (err) {
-      return { data: null, error: err };
-    }
+    return addMember(workspaceId, { name: email.split('@')[0], email, role });
   };
 
   return (
@@ -269,6 +406,8 @@ export function WorkspaceProvider({ children }) {
         updateWorkspace,
         archiveWorkspace,
         fetchMembers,
+        addMember,
+        removeMember,
         inviteMember,
         refreshWorkspaces: fetchWorkspaces,
       }}

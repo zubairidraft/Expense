@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useAttachments } from '../../context/AttachmentContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import MoneyDisplay from '../ui/MoneyDisplay';
+import { todayISO } from '../../lib/dates';
 
 export default function ReceiptUploadModal({
   isOpen,
@@ -51,7 +52,7 @@ export default function ReceiptUploadModal({
       const mockOcrText = `
 TAX INVOICE / RECEIPT
 Store: ${sampleMerchant}
-Date: ${new Date().toISOString().split('T')[0]}
+Date: ${todayISO()}
 Cashier: 042  Station: 01
 --------------------------------
 1x Groceries & Supplies     24.50
@@ -130,9 +131,9 @@ Thank you for your business!
             style={{
               padding: '0.75rem 1rem',
               borderRadius: '8px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#f87171',
+              background: 'rgba(var(--md-error-rgb), 0.15)',
+              border: '1px solid rgba(var(--md-error-rgb), 0.3)',
+              color: 'var(--md-error)',
               marginBottom: '1rem',
               fontSize: '0.875rem',
             }}
@@ -146,12 +147,12 @@ Thank you for your business!
           <div
             onClick={() => fileInputRef.current?.click()}
             style={{
-              border: '2px dashed rgba(255, 255, 255, 0.15)',
+              border: '2px dashed rgba(var(--md-on-surface-rgb), 0.15)',
               borderRadius: '14px',
               padding: '3rem 1.5rem',
               textAlign: 'center',
               cursor: 'pointer',
-              background: 'rgba(255, 255, 255, 0.02)',
+              background: 'rgba(var(--md-on-surface-rgb), 0.02)',
               transition: 'all 0.2s ease',
               display: 'flex',
               flexDirection: 'column',
@@ -160,10 +161,10 @@ Thank you for your business!
             }}
           >
             <div style={{ fontSize: '3rem' }}>🧾</div>
-            <strong style={{ fontSize: '1.1rem', color: '#f8fafc' }}>
+            <strong style={{ fontSize: '1.1rem', color: 'var(--md-on-surface)' }}>
               Click to browse or drop receipt file here
             </strong>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted, #94a3b8)', margin: 0 }}>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted, var(--md-on-surface-variant))', margin: 0 }}>
               Supports JPG, PNG, WebP and PDF (Max 10MB)
             </p>
             <input
@@ -183,8 +184,8 @@ Thank you for your business!
                 maxHeight: '260px',
                 borderRadius: '12px',
                 overflow: 'hidden',
-                background: '#090d16',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--md-surface-container)',
+                border: '1px solid rgba(var(--md-on-surface-rgb), 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -212,7 +213,7 @@ Thank you for your business!
                   top: '10px',
                   right: '10px',
                   background: 'rgba(0,0,0,0.6)',
-                  color: '#fff',
+                  color: 'var(--md-on-primary)',
                   border: 'none',
                   borderRadius: '50%',
                   width: '28px',
@@ -245,8 +246,8 @@ Thank you for your business!
                 style={{
                   padding: '1.25rem',
                   borderRadius: '12px',
-                  background: 'rgba(16, 185, 129, 0.08)',
-                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  background: 'rgba(var(--md-success-rgb), 0.08)',
+                  border: '1px solid rgba(var(--md-success-rgb), 0.25)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '0.75rem',
@@ -255,15 +256,15 @@ Thank you for your business!
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontSize: '1.25rem' }}>✅</span>
-                    <strong style={{ color: '#34d399', fontSize: '1rem' }}>
+                    <strong style={{ color: 'var(--md-success)', fontSize: '1rem' }}>
                       Receipt Extracted Successfully
                     </strong>
                   </div>
                   <span
                     style={{
                       fontSize: '0.72rem',
-                      background: 'rgba(16, 185, 129, 0.2)',
-                      color: '#34d399',
+                      background: 'rgba(var(--md-success-rgb), 0.2)',
+                      color: 'var(--md-success)',
                       padding: '0.2rem 0.5rem',
                       borderRadius: '6px',
                       fontWeight: 600,
@@ -282,15 +283,15 @@ Thank you for your business!
                   }}
                 >
                   <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, #94a3b8)' }}>Merchant</span>
-                    <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: '0.9rem' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, var(--md-on-surface-variant))' }}>Merchant</span>
+                    <div style={{ fontWeight: 600, color: 'var(--md-on-surface)', fontSize: '0.9rem' }}>
                       {ocrResult.extracted.merchantName || 'Unknown Merchant'}
                     </div>
                   </div>
 
                   <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, #94a3b8)' }}>Total Amount</span>
-                    <div style={{ fontWeight: 700, color: '#ef4444', fontSize: '0.95rem' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, var(--md-on-surface-variant))' }}>Total Amount</span>
+                    <div style={{ fontWeight: 700, color: 'var(--md-error)', fontSize: '0.95rem' }}>
                       <MoneyDisplay
                         amount={parseFloat(ocrResult.extracted.totalAmount || '0')}
                         currencyCode={ocrResult.extracted.currency || baseCurrency}
@@ -301,16 +302,16 @@ Thank you for your business!
                   </div>
 
                   <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, #94a3b8)' }}>Date</span>
-                    <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: '0.9rem' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, var(--md-on-surface-variant))' }}>Date</span>
+                    <div style={{ fontWeight: 600, color: 'var(--md-on-surface)', fontSize: '0.9rem' }}>
                       {ocrResult.extracted.date || 'Today'}
                     </div>
                   </div>
 
                   {ocrResult.extracted.taxAmount && (
                     <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, #94a3b8)' }}>Tax / VAT</span>
-                      <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: '0.9rem' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted, var(--md-on-surface-variant))' }}>Tax / VAT</span>
+                      <div style={{ fontWeight: 600, color: 'var(--md-on-surface)', fontSize: '0.9rem' }}>
                         <MoneyDisplay
                           amount={parseFloat(ocrResult.extracted.taxAmount)}
                           currencyCode={ocrResult.extracted.currency || baseCurrency}

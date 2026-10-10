@@ -3,6 +3,7 @@ import { useBudgets } from '../../context/BudgetContext';
 import { useCategories } from '../../context/CategoryContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import MoneyInput from '../ui/MoneyInput';
+import { todayISO } from '../../lib/dates';
 
 export default function CreateBudgetModal({ isOpen, onClose }) {
   const { createBudget } = useBudgets();
@@ -17,7 +18,7 @@ export default function CreateBudgetModal({ isOpen, onClose }) {
   const [rolloverEnabled, setRolloverEnabled] = useState(false);
   const [rolloverAmount, setRolloverAmount] = useState('0.00');
   const [alertThreshold, setAlertThreshold] = useState(85);
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(todayISO());
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -68,8 +69,8 @@ export default function CreateBudgetModal({ isOpen, onClose }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="modal-card"
-        style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}
+        className="modal-card glass-card"
+        style={{ maxWidth: '600px', maxHeight: 'min(88vh, calc(100dvh - 2.5rem))', overflowY: 'auto', padding: '1.75rem' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
@@ -89,9 +90,9 @@ export default function CreateBudgetModal({ isOpen, onClose }) {
             style={{
               padding: '0.75rem 1rem',
               borderRadius: '8px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#f87171',
+              background: 'rgba(var(--md-error-rgb), 0.15)',
+              border: '1px solid rgba(var(--md-error-rgb), 0.3)',
+              color: 'var(--md-error)',
               marginBottom: '1rem',
               fontSize: '0.875rem',
             }}
@@ -170,8 +171,8 @@ export default function CreateBudgetModal({ isOpen, onClose }) {
             style={{
               padding: '1rem',
               borderRadius: '10px',
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'rgba(var(--md-on-surface-rgb), 0.02)',
+              border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
               display: 'flex',
               flexDirection: 'column',
               gap: '0.75rem',
@@ -179,7 +180,7 @@ export default function CreateBudgetModal({ isOpen, onClose }) {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <strong style={{ fontSize: '0.9rem', color: '#f8fafc' }}>
+                <strong style={{ fontSize: '0.9rem', color: 'var(--md-on-surface)' }}>
                   Enable Rollover Surplus
                 </strong>
                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -190,7 +191,7 @@ export default function CreateBudgetModal({ isOpen, onClose }) {
                 type="checkbox"
                 checked={rolloverEnabled}
                 onChange={(e) => setRolloverEnabled(e.target.checked)}
-                style={{ width: '18px', height: '18px', accentColor: '#6366f1', cursor: 'pointer' }}
+                style={{ width: '18px', height: '18px', accentColor: 'var(--md-primary)', cursor: 'pointer' }}
               />
             </div>
 
@@ -214,7 +215,7 @@ export default function CreateBudgetModal({ isOpen, onClose }) {
               <label className="input-label" style={{ margin: 0 }}>
                 Alert Warning Threshold
               </label>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f59e0b' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--md-warning)' }}>
                 {alertThreshold}%
               </span>
             </div>
@@ -225,7 +226,7 @@ export default function CreateBudgetModal({ isOpen, onClose }) {
               step="5"
               value={alertThreshold}
               onChange={(e) => setAlertThreshold(Number(e.target.value))}
-              style={{ width: '100%', accentColor: '#f59e0b', cursor: 'pointer' }}
+              style={{ width: '100%', accentColor: 'var(--md-warning)', cursor: 'pointer' }}
             />
             <p style={{ margin: '0.3rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               Warn when spent amount reaches or exceeds {alertThreshold}% of effective envelope limit.

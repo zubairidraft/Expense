@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { CURRENCY_REGISTRY } from '../../lib/formatters';
 
-function ProfileFormInner({ profile, updateProfile, user, signOut, onClose }) {
+function ProfileFormInner({ profile, updateProfile, user, signOut, onClose, onOpenOnboarding }) {
   const [fullName, setFullName] = useState(profile.fullName || '');
   const [currency, setCurrency] = useState(profile.defaultCurrency || 'USD');
   const [numberFormat, setNumberFormat] = useState(profile.numberFormat || 'intl');
@@ -149,6 +149,17 @@ function ProfileFormInner({ profile, updateProfile, user, signOut, onClose }) {
       </div>
 
       <div className="modal-actions-bar">
+        <button
+          type="button"
+          onClick={() => {
+            onClose();
+            if (onOpenOnboarding) onOpenOnboarding();
+          }}
+          className="btn-secondary"
+          title="Re-run Initial Accounts & Balances Onboarding Wizard"
+        >
+          ✨ Run Setup Wizard
+        </button>
         {user && (
           <button
             type="button"
@@ -173,7 +184,7 @@ function ProfileFormInner({ profile, updateProfile, user, signOut, onClose }) {
   );
 }
 
-export default function ProfileSettingsModal({ isOpen, onClose }) {
+export default function ProfileSettingsModal({ isOpen, onClose, onOpenOnboarding }) {
   const { profile, updateProfile, user, signOut } = useAuth();
 
   if (!isOpen) return null;
@@ -200,6 +211,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }) {
           user={user}
           signOut={signOut}
           onClose={onClose}
+          onOpenOnboarding={onOpenOnboarding}
         />
       </div>
     </div>

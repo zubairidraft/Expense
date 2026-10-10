@@ -3,12 +3,23 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useWorkspace } from './WorkspaceContext';
 import { useAccounts } from './AccountContext';
+import { useCategories } from './CategoryContext';
 import {
   enqueueOfflineTransaction,
   getPendingOfflineTransactions,
   removeOfflineTransaction,
   countOfflineTransactions,
 } from '../lib/offlineQueue';
+import { sumMoney, toNum, isLiveTransaction } from '../lib/money';
+import { todayISO } from '../lib/dates';
+
+// A failure is "offline" only when the network itself failed. Validation / permission
+// errors must be shown to the user, never silently queued.
+const isNetworkError = (err) => {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
+  const msg = `${err?.message || ''} ${err?.details || ''}`;
+  return /failed to fetch|networkerror|network request failed|load failed|fetch failed/i.test(msg);
+};
 
 const TransactionContext = createContext(null);
 
@@ -162,12 +173,52 @@ const DEFAULT_GUEST_TRANSACTIONS = [
   },
 ];
 
+const sumByType = (txs, type) =>
+  toNum(
+    sumMoney(
+      txs
+        .filter((t) => t.type === type && isLiveTransaction(t) && !t.is_foreign)
+        .flatMap((t) => (t.lines || []).map((l) => l.base_amount ?? l.amount ?? '0'))
+    )
+  );
+
+const getAllRawGuestTransactions = () => {
+  try {
+    const raw = localStorage.getItem('expense_pro_transactions');
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.warn('[TransactionContext] Error reading stored transactions:', e);
+  }
+  saveRawGuestTransactions(DEFAULT_GUEST_TRANSACTIONS);
+  return DEFAULT_GUEST_TRANSACTIONS;
+};
+
+const saveRawGuestTransactions = (txList) => {
+  try {
+    localStorage.setItem('expense_pro_transactions', JSON.stringify(txList));
+  } catch (e) {
+    console.warn('[TransactionContext] Error saving transactions to localStorage:', e);
+  }
+};
+
+const getStoredGuestTransactions = () => {
+  return getAllRawGuestTransactions();
+};
+
+const saveGuestTransactions = (txList) => {
+  saveRawGuestTransactions(txList);
+};
+
 export function TransactionProvider({ children }) {
   const { user } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  const { refreshAccounts } = useAccounts();
+  const { currentWorkspace, workspaces = [] } = useWorkspace();
+  const { refreshAccounts, accounts: allAccounts = [], accountShares = [] } = useAccounts();
+  const { categories: allCategories = [] } = useCategories() || {};
 
-  const [transactions, setTransactions] = useState(DEFAULT_GUEST_TRANSACTIONS);
+  const [transactions, setTransactions] = useState(getStoredGuestTransactions);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -186,7 +237,75 @@ export function TransactionProvider({ children }) {
 
   const fetchTransactions = useCallback(async () => {
     if (!currentWorkspace?.id || !user || currentWorkspace.id === 'guest-space') {
-      setTransactions(DEFAULT_GUEST_TRANSACTIONS);
+      const currentWsId = currentWorkspace?.id || 'guest-space';
+      const rawAll = getAllRawGuestTransactions();
+
+      // 1. Transactions directly booked in this workspace
+      const localTxs = rawAll
+        .filter((t) => (t.workspace_id || 'guest-space') === currentWsId)
+        .map((t) => ({ ...t, is_foreign: false, read_only: false }));
+
+      // 2. Discover shared accounts involving this workspace
+      const sharesIn = (accountShares || []).filter(
+        (s) => s.workspace_id === currentWsId && s.status === 'active'
+      );
+      const sharedInAccountIds = new Set(sharesIn.map((s) => s.account_id));
+
+      const ownedAccountIds = new Set(
+        (allAccounts || []).filter((a) => !a.is_shared).map((a) => a.id)
+      );
+      const sharesOut = (accountShares || []).filter(
+        (s) => ownedAccountIds.has(s.account_id) && s.status === 'active'
+      );
+
+      // 3. Find foreign transactions touching these shared accounts
+      const foreignTxs = [];
+      rawAll.forEach((t) => {
+        const txWsId = t.workspace_id || 'guest-space';
+        if (txWsId === currentWsId) return;
+
+        const relevantLines = (t.lines || []).filter((l) => {
+          const accId = l.account_id || l.accountId;
+          return (
+            sharedInAccountIds.has(accId) ||
+            sharesOut.some((s) => s.account_id === accId && s.workspace_id === txWsId)
+          );
+        });
+
+        if (relevantLines.length > 0) {
+          const originWs = workspaces.find((w) => w.id === txWsId);
+          const originWsName = originWs?.name || 'Other Workspace';
+
+          const firstAccId = relevantLines[0].account_id || relevantLines[0].accountId;
+          const shareRule =
+            sharesIn.find((s) => s.account_id === firstAccId) ||
+            sharesOut.find((s) => s.account_id === firstAccId && s.workspace_id === txWsId);
+          const detailLevel = shareRule?.detail_level || 'summary';
+
+          const maskedPayee =
+            detailLevel === 'full'
+              ? (t.payee_name || t.title || 'Activity')
+              : `Activity in ${originWsName}`;
+          const maskedNotes = detailLevel === 'full' ? t.notes : null;
+
+          foreignTxs.push({
+            ...t,
+            payee_name: maskedPayee,
+            title: maskedPayee,
+            notes: maskedNotes,
+            is_foreign: true,
+            read_only: true,
+            origin_workspace_name: originWsName,
+          });
+        }
+      });
+
+      const combined = [...localTxs, ...foreignTxs].sort((a, b) => {
+        if (b.date !== a.date) return (b.date || '').localeCompare(a.date || '');
+        return (b.created_at || '').localeCompare(a.created_at || '');
+      });
+
+      setTransactions(combined);
       setLoading(false);
       return;
     }
@@ -195,7 +314,8 @@ export function TransactionProvider({ children }) {
       setLoading(true);
       setError(null);
 
-      const { data, error: txErr } = await supabase
+      // 1. Fetch local workspace transactions
+      const { data: localData, error: txErr } = await supabase
         .from('transactions')
         .select(`
           *,
@@ -214,15 +334,75 @@ export function TransactionProvider({ children }) {
 
       if (txErr) throw txErr;
 
-      setTransactions(data || []);
+      const localTxs = (localData || []).map((t) => ({
+        ...t,
+        is_foreign: false,
+        read_only: false,
+      }));
+
+      // 2. Fetch foreign activity on shared accounts via RPC
+      let foreignTxs = [];
+      try {
+        const { data: sharedRows, error: sharedErr } = await supabase
+          .rpc('get_shared_account_activity', { p_workspace_id: currentWorkspace.id });
+
+        if (sharedErr) {
+          console.warn('[TransactionContext] get_shared_account_activity error:', sharedErr.message);
+        } else if (Array.isArray(sharedRows) && sharedRows.length > 0) {
+          const foreignMap = new Map();
+          sharedRows.forEach((row) => {
+            if (!foreignMap.has(row.transaction_id)) {
+              foreignMap.set(row.transaction_id, {
+                id: row.transaction_id,
+                workspace_id: row.origin_workspace_id,
+                origin_workspace_name: row.origin_workspace_name,
+                type: row.type,
+                date: row.date,
+                status: row.status,
+                payee_name: row.payee_name,
+                notes: row.notes,
+                detail_level: row.detail_level,
+                is_foreign: true,
+                read_only: true,
+                created_at: row.created_at,
+                lines: [],
+                tags: [],
+              });
+            }
+            foreignMap.get(row.transaction_id).lines.push({
+              id: `foreign-line-${row.transaction_id}-${row.account_id}`,
+              account_id: row.account_id,
+              direction: row.direction,
+              amount: String(row.amount),
+              currency: row.currency,
+              fx_rate: '1.0000000000',
+              base_amount: String(row.base_amount || row.amount),
+              description: '',
+              category: null,
+              account: { id: row.account_id, name: row.account_name, currency: row.currency },
+            });
+          });
+          foreignTxs = Array.from(foreignMap.values());
+        }
+      } catch (rpcEx) {
+        console.warn('[TransactionContext] RPC call exception:', rpcEx);
+      }
+
+      const allCombined = [...localTxs, ...foreignTxs].sort((a, b) => {
+        if (b.date !== a.date) return (b.date || '').localeCompare(a.date || '');
+        return (b.created_at || '').localeCompare(a.created_at || '');
+      });
+
+      setTransactions(allCombined);
     } catch (err) {
       console.warn('[TransactionContext] Error fetching ledger:', err.message);
       setError(err.message);
-      setTransactions(DEFAULT_GUEST_TRANSACTIONS);
+      // Never show demo data to a signed-in user
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
-  }, [currentWorkspace?.id, user]);
+  }, [currentWorkspace?.id, user, accountShares, allAccounts, workspaces]);
 
   // Sync IndexedDB outbox to Supabase
   const syncOutbox = useCallback(async () => {
@@ -257,8 +437,14 @@ export function TransactionProvider({ children }) {
 
           if (!rpcErr) {
             await removeOfflineTransaction(item.idempotencyKey);
+          } else if (isNetworkError(rpcErr)) {
+            console.warn('[OfflineQueue] Still offline, will retry:', item.idempotencyKey);
+            break;
           } else {
-            console.error('[OfflineQueue] Sync failed for item:', item.idempotencyKey, rpcErr);
+            // Permanent failure (validation / permission): drop it and tell the user
+            console.error('[OfflineQueue] Queued item rejected by server:', item.idempotencyKey, rpcErr);
+            await removeOfflineTransaction(item.idempotencyKey);
+            setError(`A queued entry "${item.payeeName || item.type}" was rejected: ${rpcErr.message}`);
           }
         }
       }
@@ -307,16 +493,43 @@ export function TransactionProvider({ children }) {
   // Book a new transaction (Single line, split, or transfer)
   const addTransaction = async ({
     type,
-    date = new Date().toISOString().split('T')[0],
+    date = todayISO(),
     status = 'cleared',
     merchantId = null,
     payeeName = '',
+    title = '',
     notes = '',
     source = 'manual',
     lines = [],
     tagIds = [],
+    idempotencyKey: providedKey = null,
   }) => {
-    const idempotencyKey = `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const idempotencyKey =
+      providedKey ||
+      (typeof crypto !== 'undefined' && crypto.randomUUID
+        ? `idemp-${crypto.randomUUID()}`
+        : `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
+    payeeName = (payeeName || title || '').trim();
+
+    if (!Array.isArray(lines) || lines.length === 0) {
+      return { data: null, error: new Error('A transaction needs at least one line') };
+    }
+    if (lines.some((l) => !l.accountId)) {
+      return { data: null, error: new Error('Please select an account') };
+    }
+
+    // Guard: Prevent posting to shared accounts with read-only access (can_post = false)
+    for (const l of lines) {
+      const targetAcc = allAccounts.find((a) => a.id === l.accountId);
+      if (targetAcc && targetAcc.is_shared && targetAcc.can_post === false) {
+        return {
+          data: null,
+          error: new Error(`Account "${targetAcc.name}" is shared as read-only. You cannot post transactions to it.`),
+        };
+      }
+    }
+
+    const computedAmount = toNum(sumMoney(lines.map((l) => l.amount)));
 
     // Optimistic fallback object
     const optimisticTx = {
@@ -327,6 +540,8 @@ export function TransactionProvider({ children }) {
       status,
       merchant_id: merchantId,
       payee_name: payeeName,
+      title: payeeName,
+      amount: computedAmount,
       notes,
       idempotency_key: idempotencyKey,
       is_offline_pending: !isOnline,
@@ -341,14 +556,18 @@ export function TransactionProvider({ children }) {
         fx_rate: l.fxRate || '1.0000000000',
         base_amount: String(l.baseAmount || l.amount),
         description: l.description || '',
-        category: l.category || null,
-        account: l.account || null,
+        category: l.category || allCategories.find((c) => c.id === l.categoryId) || null,
+        account: l.account || allAccounts.find((a) => a.id === l.accountId) || null,
       })),
       tags: [],
     };
 
     if (!user || currentWorkspace?.id === 'guest-space') {
-      setTransactions((prev) => [optimisticTx, ...prev]);
+      const rawAll = getAllRawGuestTransactions();
+      const updated = [optimisticTx, ...rawAll.filter((t) => t.id !== optimisticTx.id)];
+      saveRawGuestTransactions(updated);
+      await fetchTransactions();
+      if (refreshAccounts) refreshAccounts();
       return { data: optimisticTx, error: null };
     }
 
@@ -401,9 +620,16 @@ export function TransactionProvider({ children }) {
 
       return { data: txId, error: null };
     } catch (err) {
-      console.warn('[TransactionContext] Booking failed or offline, queuing into outbox:', err);
+      if (!isNetworkError(err)) {
+        // Server rejected the entry (validation / permissions). Surface it; do NOT queue.
+        console.warn('[TransactionContext] Booking rejected:', err);
+        setError(err.message);
+        return { data: null, error: err };
+      }
 
-      // Queue into IndexedDB as safety net
+      console.warn('[TransactionContext] Network failure, queuing into outbox:', err);
+
+      // Queue into IndexedDB only for genuine connectivity failures
       await enqueueOfflineTransaction({
         workspaceId: currentWorkspace.id,
         type,
@@ -425,10 +651,23 @@ export function TransactionProvider({ children }) {
   };
 
 
-  // Soft delete transaction
+  // Soft delete transaction (undo available via restoreTransaction)
   const deleteTransaction = async (transactionId) => {
+    const target = transactions.find((t) => t.id === transactionId);
+    if (target?.is_foreign) {
+      const err = new Error(
+        `Cannot delete transaction from ${target.origin_workspace_name || 'another workspace'}. It can only be deleted in its originating workspace.`
+      );
+      setError(err.message);
+      return { error: err };
+    }
+
     if (!user || currentWorkspace?.id === 'guest-space') {
-      setTransactions((prev) => prev.filter((t) => t.id !== transactionId));
+      const rawAll = getAllRawGuestTransactions();
+      const updated = rawAll.filter((t) => t.id !== transactionId);
+      saveRawGuestTransactions(updated);
+      await fetchTransactions();
+      if (refreshAccounts) refreshAccounts();
       return { error: null };
     }
 
@@ -452,12 +691,57 @@ export function TransactionProvider({ children }) {
     }
   };
 
+  // Undo a soft delete
+  const restoreTransaction = async (transactionId, txSnapshot = null) => {
+    if (!user || currentWorkspace?.id === 'guest-space') {
+      if (txSnapshot) {
+        const rawAll = getAllRawGuestTransactions();
+        if (!rawAll.some((t) => t.id === transactionId)) {
+          saveRawGuestTransactions([txSnapshot, ...rawAll]);
+          await fetchTransactions();
+          if (refreshAccounts) refreshAccounts();
+        }
+      }
+      return { error: null };
+    }
+    try {
+      const { error: resErr } = await supabase
+        .from('transactions')
+        .update({ deleted_at: null })
+        .eq('id', transactionId);
+      if (resErr) throw resErr;
+      await fetchTransactions();
+      if (refreshAccounts) refreshAccounts();
+      return { error: null };
+    } catch (err) {
+      setError(err.message);
+      return { error: err };
+    }
+  };
+
+  // Edit an existing transfer transaction (soft-deletes old and books new)
+  const editTransferTransaction = async (oldTransactionId, newTransferData) => {
+    const delRes = await deleteTransaction(oldTransactionId);
+    if (delRes?.error) return { data: null, error: delRes.error };
+    const addRes = await addTransaction(newTransferData);
+    return addRes;
+  };
+
   // Update status (pending, cleared, reconciled)
   const updateStatus = async (transactionId, newStatus) => {
+    const target = transactions.find((t) => t.id === transactionId);
+    if (target?.is_foreign) {
+      const err = new Error('Cannot update status of a transaction from another workspace.');
+      setError(err.message);
+      return { error: err };
+    }
+
     if (!user || currentWorkspace?.id === 'guest-space') {
-      setTransactions((prev) =>
-        prev.map((t) => (t.id === transactionId ? { ...t, status: newStatus } : t))
-      );
+      const rawAll = getAllRawGuestTransactions();
+      const updated = rawAll.map((t) => (t.id === transactionId ? { ...t, status: newStatus } : t));
+      saveRawGuestTransactions(updated);
+      await fetchTransactions();
+      if (refreshAccounts) refreshAccounts();
       return { error: null };
     }
 
@@ -470,6 +754,7 @@ export function TransactionProvider({ children }) {
       if (updErr) throw updErr;
 
       await fetchTransactions();
+      if (refreshAccounts) refreshAccounts();
       return { error: null };
     } catch (err) {
       setError(err.message);
@@ -477,32 +762,10 @@ export function TransactionProvider({ children }) {
     }
   };
 
-  // Computed Ledger Aggregates
-  const totalIncome = useMemo(() => {
-    return transactions
-      .filter((t) => t.type === 'income')
-      .reduce((sum, t) => {
-        const lineSum = (t.lines || []).reduce(
-          (lSum, l) => lSum + parseFloat(l.base_amount || l.amount || '0'),
-          0
-        );
-        return sum + lineSum;
-      }, 0);
-  }, [transactions]);
-
-  const totalExpense = useMemo(() => {
-    return transactions
-      .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => {
-        const lineSum = (t.lines || []).reduce(
-          (lSum, l) => lSum + parseFloat(l.base_amount || l.amount || '0'),
-          0
-        );
-        return sum + lineSum;
-      }, 0);
-  }, [transactions]);
-
-  const balance = totalIncome - totalExpense;
+  // Computed Ledger Aggregates (decimal-safe, base currency, excludes deleted/pending)
+  const totalIncome = useMemo(() => sumByType(transactions, 'income'), [transactions]);
+  const totalExpense = useMemo(() => sumByType(transactions, 'expense'), [transactions]);
+  const balance = toNum(sumMoney([totalIncome, -totalExpense]));
 
   const savingsRate = useMemo(() => {
     return totalIncome > 0
@@ -526,7 +789,9 @@ export function TransactionProvider({ children }) {
         syncOutbox,
         addTransaction,
         deleteTransaction,
+        editTransferTransaction,
         updateStatus,
+        restoreTransaction,
         refreshTransactions: fetchTransactions,
       }}
     >

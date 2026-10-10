@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCurrency } from '../../context/CurrencyContext';
 
 const SUPPORTED_CURRENCIES = ['USD', 'PKR', 'AED', 'EUR', 'GBP', 'SAR', 'INR', 'CAD'];
@@ -12,6 +12,17 @@ export default function CurrencyConverterModal({ isOpen, onClose }) {
   const [editingRate, setEditingRate] = useState(false);
   const [customRate, setCustomRate] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -105,21 +116,21 @@ export default function CurrencyConverterModal({ isOpen, onClose }) {
           {/* Conversion Result Display */}
           <div
             style={{
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(56, 189, 248, 0.1))',
-              border: '1px solid rgba(99, 102, 241, 0.25)',
+              background: 'linear-gradient(135deg, rgba(var(--md-primary-rgb), 0.15), rgba(var(--md-info-rgb), 0.1))',
+              border: '1px solid rgba(var(--md-primary-rgb), 0.25)',
               borderRadius: '12px',
               padding: '1.25rem',
               textAlign: 'center',
               marginBottom: '1rem',
             }}
           >
-            <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)' }}>
               {amount} {fromCurrency} =
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#f8fafc', margin: '0.25rem 0' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--md-on-surface)', margin: '0.25rem 0' }}>
               {convertedAmount} {toCurrency}
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#38bdf8' }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--md-info)' }}>
               1 {fromCurrency} = {parseFloat(currentRate).toFixed(4)} {toCurrency}
             </div>
           </div>
@@ -130,7 +141,7 @@ export default function CurrencyConverterModal({ isOpen, onClose }) {
               <button
                 type="button"
                 className="btn-text"
-                style={{ fontSize: '0.78rem', color: '#6366f1' }}
+                style={{ fontSize: '0.78rem', color: 'var(--md-primary)' }}
                 onClick={() => {
                   setCustomRate(parseFloat(currentRate).toFixed(4));
                   setEditingRate(true);
@@ -171,8 +182,8 @@ export default function CurrencyConverterModal({ isOpen, onClose }) {
           </div>
 
           {/* Quick Rates Table */}
-          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '0.75rem' }}>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ borderTop: '1px solid rgba(var(--md-on-surface-rgb), 0.08)', paddingTop: '0.75rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--md-on-surface-variant)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               USD Base Benchmark Rates
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
@@ -180,15 +191,15 @@ export default function CurrencyConverterModal({ isOpen, onClose }) {
                 <div
                   key={code}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
+                    background: 'rgba(var(--md-on-surface-rgb), 0.03)',
                     padding: '0.4rem',
                     borderRadius: '6px',
                     textAlign: 'center',
-                    border: '1px solid rgba(255, 255, 255, 0.04)',
+                    border: '1px solid rgba(var(--md-on-surface-rgb), 0.04)',
                   }}
                 >
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{code}</div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f8fafc' }}>{parseFloat(r).toFixed(2)}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--md-on-surface-variant)' }}>{code}</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--md-on-surface)' }}>{parseFloat(r).toFixed(2)}</div>
                 </div>
               ))}
             </div>

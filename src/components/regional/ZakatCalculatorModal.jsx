@@ -108,6 +108,17 @@ export default function ZakatCalculatorModal({ isOpen, onClose }) {
     currency,
   ]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -126,7 +137,7 @@ export default function ZakatCalculatorModal({ isOpen, onClose }) {
         </div>
 
         {/* Nisab Benchmark Settings */}
-        <div className="card" style={{ padding: '1rem', marginBottom: '1.25rem', background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+        <div className="card" style={{ padding: '1rem', marginBottom: '1.25rem', background: 'rgba(var(--md-primary-rgb), 0.05)', border: '1px solid rgba(var(--md-primary-rgb), 0.2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-primary)' }}>
               Nisab Threshold Standard:
@@ -167,7 +178,7 @@ export default function ZakatCalculatorModal({ isOpen, onClose }) {
                 style={{ padding: '0.35rem 0.6rem', marginTop: '0.2rem' }}
               />
             </div>
-            <div style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', textAlign: 'right' }}>
+            <div style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: 'rgba(var(--md-on-surface-rgb), 0.05)', textAlign: 'right' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Nisab Required:</span>
               <p style={{ margin: 0, fontWeight: '700', fontSize: '1rem', color: 'var(--text-primary)' }}>
                 {nisabThreshold} {currency}
@@ -285,8 +296,8 @@ export default function ZakatCalculatorModal({ isOpen, onClose }) {
           style={{
             padding: '1.25rem',
             borderRadius: '10px',
-            background: zakatResult.isNisabExceeded ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.03)',
-            border: `1px solid ${zakatResult.isNisabExceeded ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-color)'}`,
+            background: zakatResult.isNisabExceeded ? 'rgba(var(--md-success-rgb), 0.08)' : 'rgba(var(--md-on-surface-rgb), 0.03)',
+            border: `1px solid ${zakatResult.isNisabExceeded ? 'rgba(var(--md-success-rgb), 0.3)' : 'var(--border-color)'}`,
             marginBottom: '1rem',
           }}
         >
@@ -305,8 +316,8 @@ export default function ZakatCalculatorModal({ isOpen, onClose }) {
                 padding: '0.2rem 0.5rem',
                 borderRadius: '4px',
                 fontWeight: '700',
-                background: zakatResult.isNisabExceeded ? '#10b981' : 'rgba(255,255,255,0.1)',
-                color: '#fff',
+                background: zakatResult.isNisabExceeded ? 'var(--md-success)' : 'rgba(var(--md-on-surface-rgb), 0.1)',
+                color: 'var(--md-on-primary)',
               }}
             >
               {zakatResult.isNisabExceeded ? '✅ Nisab Exceeded (Eligible)' : '⚪ Below Nisab (No Zakat Due)'}
@@ -317,7 +328,7 @@ export default function ZakatCalculatorModal({ isOpen, onClose }) {
             <span style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-primary)' }}>
               Zakat Payable (2.5%):
             </span>
-            <span style={{ fontSize: '1.5rem', fontWeight: '900', color: zakatResult.isNisabExceeded ? '#10b981' : 'var(--text-secondary)' }}>
+            <span style={{ fontSize: '1.5rem', fontWeight: '900', color: zakatResult.isNisabExceeded ? 'var(--md-success)' : 'var(--text-secondary)' }}>
               {zakatResult.zakatPayable} {currency}
             </span>
           </div>

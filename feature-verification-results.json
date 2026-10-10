@@ -1,0 +1,72 @@
+[
+  {
+    "name": "Onboarding Dismissed in LocalStorage",
+    "passed": true,
+    "detail": "val=true"
+  },
+  {
+    "name": "Modal Does NOT Recur On Page Reload",
+    "passed": true,
+    "detail": "modalPresent=false"
+  },
+  {
+    "name": "'q' Key Does Not Trigger Quick Modal",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "'/' Key Does Not Trigger Quick Modal",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "Navbar Theme Toggle Button Exists",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "Theme Toggled to Light Mode",
+    "passed": true,
+    "detail": "data-theme=light, bodyClass=light"
+  },
+  {
+    "name": "Light Theme Stored in LocalStorage",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "Light Theme Persisted After Browser Reload",
+    "passed": true,
+    "detail": "data-theme=light"
+  },
+  {
+    "name": "Theme Toggled Back to Dark Mode",
+    "passed": true,
+    "detail": "data-theme=dark"
+  },
+  {
+    "name": "Transactions Initialized in LocalStorage",
+    "passed": true,
+    "detail": "count=5"
+  },
+  {
+    "name": "Accounts Initialized in LocalStorage",
+    "passed": true,
+    "detail": "count=3"
+  },
+  {
+    "name": "Transaction Persisted in Local Memory Across Reload",
+    "passed": true,
+    "detail": "desc=\"undefined\""
+  },
+  {
+    "name": "Account Persisted in Local Memory Across Reload",
+    "passed": true,
+    "detail": "name=\"Verification Bank Account\""
+  },
+  {
+    "name": "Persisted Transaction Rendered on Dashboard",
+    "passed": true,
+    "detail": ""
+  }
+]

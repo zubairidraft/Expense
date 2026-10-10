@@ -4,6 +4,9 @@ import { useAuth } from './AuthContext';
 import { useWorkspace } from './WorkspaceContext';
 import { useTransactions } from './TransactionContext';
 import { calculateBudgetUtilization } from '@universal-expense/core';
+import { todayISO } from '../lib/dates';
+import { getPeriodRange } from '../lib/periods';
+import { sumMoney, isLiveTransaction } from '../lib/money';
 
 const BudgetContext = createContext(null);
 
@@ -77,11 +80,11 @@ export function BudgetProvider({ children }) {
         .eq('workspace_id', currentWorkspace.id);
 
       if (fErr) throw fErr;
-      setBudgets(data && data.length > 0 ? data : DEFAULT_GUEST_BUDGETS);
+      setBudgets(data || []);
     } catch (err) {
       console.warn('[BudgetContext] Fetch error:', err.message);
       setError(err.message);
-      setBudgets(DEFAULT_GUEST_BUDGETS);
+      setBudgets([]);
     } finally {
       setLoading(false);
     }
@@ -91,30 +94,36 @@ export function BudgetProvider({ children }) {
     fetchBudgets();
   }, [fetchBudgets]);
 
-  // Compute spent amount per category based on active transactions
-  const categorySpentMap = useMemo(() => {
-    const map = {};
-    for (const tx of transactions) {
-      if (tx.type !== 'expense') continue;
-
-      if (tx.lines && tx.lines.length > 0) {
-        for (const line of tx.lines) {
-          const catId = line.category_id || line.categoryId || line.category?.id;
-          if (catId) {
-            const amt = parseFloat(line.base_amount || line.amount || '0');
-            map[catId] = (map[catId] || 0) + amt;
-          }
-        }
-      } else {
-        const catId = tx.category_id || tx.categoryId || tx.category;
-        if (catId) {
-          const amt = parseFloat(tx.amount || '0');
-          map[catId] = (map[catId] || 0) + amt;
+  // Spent for one budget = expense outflows in its category within the CURRENT period
+  // (respecting workspace month_start_day), minus refunds to that category.
+  const computeSpent = useCallback(
+    (budget) => {
+      const catId = budget.category_id || budget.categoryId;
+      const { start, end } = getPeriodRange(budget.period, {
+        monthStartDay: currentWorkspace?.month_start_day || 1,
+        startDate: budget.start_date,
+        endDate: budget.end_date,
+      });
+      const plus = [];
+      const minus = [];
+      for (const tx of transactions) {
+        if (!isLiveTransaction(tx) || tx.is_foreign) continue;
+        const d = tx.date || '';
+        if (d < start || d > end) continue;
+        if (tx.type !== 'expense' && tx.type !== 'refund') continue;
+        for (const line of tx.lines || []) {
+          const lineCat = line.category_id || line.categoryId || line.category?.id;
+          if (catId && lineCat !== catId) continue;
+          const amt = line.base_amount ?? line.amount ?? '0';
+          if (tx.type === 'expense' && line.direction === 'out') plus.push(amt);
+          if (tx.type === 'refund' && line.direction === 'in') minus.push(amt);
         }
       }
-    }
-    return map;
-  }, [transactions]);
+      const spent = sumMoney(plus).minus(sumMoney(minus));
+      return { spent: spent.isNegative() ? '0.00' : spent.toFixed(2), start, end };
+    },
+    [transactions, currentWorkspace?.month_start_day]
+  );
 
   // Create budget
   const createBudget = async ({
@@ -131,7 +140,7 @@ export function BudgetProvider({ children }) {
     const isGuest = !user || currentWorkspace?.id === 'guest-space';
     const workspaceId = currentWorkspace?.id || 'guest-space';
     const curr = currency || currentWorkspace?.base_currency || 'USD';
-    const start = startDate || new Date().toISOString().split('T')[0];
+    const start = startDate || todayISO();
 
     if (isGuest) {
       const newBudget = {
@@ -230,7 +239,7 @@ export function BudgetProvider({ children }) {
   // Get live utilization for a budget record
   const getUtilization = (budget) => {
     const catId = budget.category_id || budget.categoryId;
-    const spent = categorySpentMap[catId] || 0;
+    const { spent, start, end } = computeSpent(budget);
 
     const coreBudget = {
       id: budget.id,
@@ -246,13 +255,24 @@ export function BudgetProvider({ children }) {
       endDate: budget.end_date || budget.endDate,
     };
 
-    return calculateBudgetUtilization(coreBudget, spent.toFixed(2));
+    return { ...calculateBudgetUtilization(coreBudget, spent), periodStart: start, periodEnd: end };
   };
+
+  // Budgets enriched with current-period spend (used by notifications & dashboards)
+  const budgetsWithSpent = useMemo(
+    () =>
+      budgets.map((b) => ({
+        ...b,
+        name: b.name || b.categories?.name || b.category_name,
+        spent: computeSpent(b).spent,
+      })),
+    [budgets, computeSpent]
+  );
 
   return (
     <BudgetContext.Provider
       value={{
-        budgets,
+        budgets: budgetsWithSpent,
         loading,
         error,
         createBudget,

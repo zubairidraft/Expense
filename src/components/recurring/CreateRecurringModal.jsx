@@ -4,6 +4,7 @@ import { useAccounts } from '../../context/AccountContext';
 import { useCategories } from '../../context/CategoryContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import MoneyInput from '../ui/MoneyInput';
+import { todayISO } from '../../lib/dates';
 
 export default function CreateRecurringModal({ isOpen, onClose }) {
   const { createRecurringProfile } = useRecurring();
@@ -18,8 +19,8 @@ export default function CreateRecurringModal({ isOpen, onClose }) {
   const [frequency, setFrequency] = useState('monthly');
   const [interval, setInterval] = useState(1);
   const [amount, setAmount] = useState('');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [nextDueDate, setNextDueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(todayISO());
+  const [nextDueDate, setNextDueDate] = useState(todayISO());
   const [accountId, setAccountId] = useState(accounts[0]?.id || '');
   const [categoryId, setCategoryId] = useState('');
   const [autoPost, setAutoPost] = useState(false);
@@ -102,9 +103,9 @@ export default function CreateRecurringModal({ isOpen, onClose }) {
             style={{
               padding: '0.75rem 1rem',
               borderRadius: '8px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#f87171',
+              background: 'rgba(var(--md-error-rgb), 0.15)',
+              border: '1px solid rgba(var(--md-error-rgb), 0.3)',
+              color: 'var(--md-error)',
               marginBottom: '1rem',
               fontSize: '0.875rem',
             }}
@@ -256,18 +257,18 @@ export default function CreateRecurringModal({ isOpen, onClose }) {
             style={{
               padding: '0.85rem 1rem',
               borderRadius: '8px',
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'rgba(var(--md-on-surface-rgb), 0.03)',
+              border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
             }}
           >
             <div>
-              <strong style={{ fontSize: '0.9rem', color: '#f8fafc' }}>
+              <strong style={{ fontSize: '0.9rem', color: 'var(--md-on-surface)' }}>
                 Auto-Book to Ledger
               </strong>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)', margin: 0 }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted, var(--md-on-surface-variant))', margin: 0 }}>
                 Automatically record transaction on due date via backend scheduler.
               </p>
             </div>
@@ -275,7 +276,7 @@ export default function CreateRecurringModal({ isOpen, onClose }) {
               type="checkbox"
               checked={autoPost}
               onChange={(e) => setAutoPost(e.target.checked)}
-              style={{ width: '18px', height: '18px', accentColor: '#6366f1', cursor: 'pointer' }}
+              style={{ width: '18px', height: '18px', accentColor: 'var(--md-primary)', cursor: 'pointer' }}
             />
           </div>
 

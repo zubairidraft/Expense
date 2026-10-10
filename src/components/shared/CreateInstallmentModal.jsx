@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSharedDebts } from '../../context/SharedDebtsContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import MoneyInput from '../ui/MoneyInput';
+import { todayISO } from '../../lib/dates';
 
 export default function CreateInstallmentModal({ isOpen, onClose }) {
   const { createInstallmentPlan } = useSharedDebts();
@@ -12,7 +13,7 @@ export default function CreateInstallmentModal({ isOpen, onClose }) {
   const [interestOrFee, setInterestOrFee] = useState('0.00');
   const [totalInstallments, setTotalInstallments] = useState(12);
   const [frequency, setFrequency] = useState('monthly');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(todayISO());
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -150,8 +151,8 @@ export default function CreateInstallmentModal({ isOpen, onClose }) {
           {/* Real-time Calculation Summary Box */}
           <div
             style={{
-              background: 'rgba(99, 102, 241, 0.08)',
-              border: '1px solid rgba(99, 102, 241, 0.2)',
+              background: 'rgba(var(--md-primary-rgb), 0.08)',
+              border: '1px solid rgba(var(--md-primary-rgb), 0.2)',
               borderRadius: '8px',
               padding: '0.75rem 1rem',
               display: 'flex',
@@ -160,14 +161,14 @@ export default function CreateInstallmentModal({ isOpen, onClose }) {
             }}
           >
             <div>
-              <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Total Obligation</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 600, color: '#f8fafc' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--md-on-surface-variant)' }}>Total Obligation</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--md-on-surface)' }}>
                 ${total}
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Per {frequency === 'monthly' ? 'Month' : frequency}</div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#10b981' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--md-on-surface-variant)' }}>Per {frequency === 'monthly' ? 'Month' : frequency}</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--md-success)' }}>
                 ${perInstallment} / mo
               </div>
             </div>

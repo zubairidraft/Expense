@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import { useWorkspace } from './WorkspaceContext';
 import { useTransactions } from './TransactionContext';
 import { computeNextDueDate, generateCashFlowProjection } from '@universal-expense/core';
+import { todayISO } from '../lib/dates';
 
 const RecurringContext = createContext(null);
 
@@ -84,11 +85,11 @@ export function RecurringProvider({ children }) {
         .order('next_due_date', { ascending: true });
 
       if (fErr) throw fErr;
-      setRecurringProfiles(data && data.length > 0 ? data : DEFAULT_GUEST_RECURRING);
+      setRecurringProfiles(data || []);
     } catch (err) {
       console.warn('[RecurringContext] Fetch error:', err.message);
       setError(err.message);
-      setRecurringProfiles(DEFAULT_GUEST_RECURRING);
+      setRecurringProfiles([]);
     } finally {
       setLoading(false);
     }
@@ -128,9 +129,9 @@ export function RecurringProvider({ children }) {
         type,
         frequency,
         interval: Number(interval),
-        start_date: startDate || new Date().toISOString().split('T')[0],
+        start_date: startDate || todayISO(),
         end_date: endDate,
-        next_due_date: nextDueDate || startDate || new Date().toISOString().split('T')[0],
+        next_due_date: nextDueDate || startDate || todayISO(),
         amount: String(amount),
         currency: curr,
         account_id: accountId,
@@ -227,33 +228,48 @@ export function RecurringProvider({ children }) {
   };
 
   // Mark occurrence as paid / advance due date
-  const markAsPaid = async (profileId, bookTransaction = true) => {
+  // Mark occurrence as paid / advance due date and book deduction
+  const markAsPaid = async (profileId, selectedAccountId = null, paymentDate = null) => {
     const profile = recurringProfiles.find((r) => r.id === profileId);
     if (!profile) return { error: new Error('Profile not found') };
 
     const nextDue = computeNextDueDate(
       profile.next_due_date || profile.nextDueDate,
       profile.frequency,
-      profile.interval || 1
+      profile.interval || 1,
+      profile.start_date ? Number(profile.start_date.slice(8, 10)) : undefined
     );
 
-    // Optionally book transaction
-    if (bookTransaction && addTransaction) {
-      try {
-        await addTransaction({
-          type: profile.type,
-          date: profile.next_due_date || profile.nextDueDate,
-          payeeName: profile.title,
-          notes: `Recurring payment for ${profile.title}`,
-          accountId: profile.account_id || profile.accountId,
-          categoryId: profile.category_id || profile.categoryId,
-          amount: profile.amount,
-          currency: profile.currency,
-          status: 'cleared',
-        });
-      } catch (e) {
-        console.warn('[RecurringContext] Book transaction notice:', e);
-      }
+    const dueDate = profile.next_due_date || profile.nextDueDate;
+    const targetAccountId = selectedAccountId || profile.account_id || profile.accountId;
+    if (!targetAccountId) {
+      return { error: new Error('Please choose the account this bill is paid from') };
+    }
+
+    // Book the occurrence. The idempotency key is per profile + due date, so a
+    // double-click or retry can never post the same bill twice.
+    const isIncome = profile.type === 'income';
+    const lineAmt = String(profile.amount);
+    const res = await addTransaction({
+      type: isIncome ? 'income' : 'expense',
+      date: paymentDate || todayISO(),
+      payeeName: profile.title,
+      notes: `Recurring payment for ${profile.title}`,
+      status: 'cleared',
+      source: 'recurring',
+      idempotencyKey: `recurring-${profile.id}-${dueDate}`,
+      lines: [
+        {
+          accountId: targetAccountId,
+          categoryId: profile.category_id || profile.categoryId || null,
+          direction: isIncome ? 'in' : 'out',
+          amount: lineAmt,
+          description: `Recurring payment for ${profile.title}`,
+        },
+      ],
+    });
+    if (res?.error) {
+      return { error: res.error };
     }
 
     return await updateRecurringProfile(profileId, {

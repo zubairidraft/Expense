@@ -1,0 +1,8 @@
+{
+  "appId": "com.expensetracking.app",
+  "appName": "Expense Pro",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

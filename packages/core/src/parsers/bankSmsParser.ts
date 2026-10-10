@@ -155,6 +155,11 @@ export function parseBankSms(text: string, senderHeader?: string): ParsedBankSms
 /**
  * Converts a parsed bank SMS into an authoritative transaction draft ready for booking.
  */
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export function generateDraftFromSms(parsed: ParsedBankSms): SmsTransactionDraft {
   const payee = parsed.merchantOrPayee || (parsed.bankName !== 'Unknown Bank' ? parsed.bankName : 'Merchant');
   const title = `${parsed.type === 'income' ? 'Received from' : 'Spent at'} ${payee}`;
@@ -164,7 +169,7 @@ export function generateDraftFromSms(parsed: ParsedBankSms): SmsTransactionDraft
     amount: parsed.amount,
     currency: parsed.currency,
     type: parsed.type,
-    date: new Date().toISOString().split('T')[0],
+    date: localToday(),
     payeeName: parsed.merchantOrPayee,
     notes: `Parsed from ${parsed.bankName} SMS alert${parsed.accountHint ? ` (Acct: ${parsed.accountHint})` : ''}`,
     source: 'sms',

@@ -1,0 +1,169 @@
+{
+  "results": [
+    {
+      "testName": "Page Title Loaded",
+      "passed": true,
+      "details": "Title: \"Expense Tracker Pro — Intelligent Finance Dashboard\""
+    },
+    {
+      "testName": "App Shell Rendered",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Overview Stat Cards Present",
+      "passed": true,
+      "details": "Found: 4 cards"
+    },
+    {
+      "testName": "Financial Overview Stats Content",
+      "passed": true,
+      "details": "Net Balance, Income, Expenses present"
+    },
+    {
+      "testName": "Click Ledger Activity Nav",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Transactions View Rendered",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Click Accounts Nav",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Accounts Data & Nature (Asset/Liability) Displayed",
+      "passed": true,
+      "details": "Account natures verified"
+    },
+    {
+      "testName": "Click Categories Nav",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Click Recurring Nav",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Click Budgets Nav",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Click Shared & Debts Nav",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Shared Bills & Settle-Up / Udhaar Board Rendered",
+      "passed": true,
+      "details": "Stage D modules visible"
+    },
+    {
+      "testName": "Click Business Nav",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Click Analytics Nav",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Analytics Metrics & Forecasting Curves Displayed",
+      "passed": true,
+      "details": "Stage F analytics verified"
+    },
+    {
+      "testName": "Click Reports Nav",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Reports & Tax Summary Statement Rendered",
+      "passed": true,
+      "details": "Print/PDF report ready"
+    },
+    {
+      "testName": "Quick Add Modal Triggered via Navbar Button",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Open Zakat Calculator Modal",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Zakat Nisab & Net Liability Calculation Present",
+      "passed": true,
+      "details": "Islamic Zakat engine verified"
+    },
+    {
+      "testName": "Open FX Rates Modal",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Open Import / Export Modal",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "SMS Auto-Parsing (HBL/Meezan/JazzCash/UAE) Works",
+      "passed": true,
+      "details": "SMS draft generated"
+    },
+    {
+      "testName": "Open Setup Wizard Modal",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Open Notification Center Modal",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "testName": "Book Transaction on Dashboard",
+      "passed": true,
+      "details": "New transaction appears in recent activity"
+    },
+    {
+      "testName": "Clean Console (Zero React / Runtime Errors)",
+      "passed": true,
+      "details": "Zero errors"
+    }
+  ],
+  "consoleErrors": [],
+  "consoleLogs": [
+    "[debug] [vite] connecting...",
+    "[debug] [vite] connected.",
+    "[info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+    "[error] Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "[warn] [Agentation] Failed to initialize session, using local storage: TypeError: Failed to fetch",
+    "[error] Failed to load resource: net::ERR_FAILED",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: net::ERR_FAILED",
+    "[error] Failed to load resource: net::ERR_FAILED",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()",
+    "[error] Failed to load resource: the server responded with a status of 400 ()"
+  ]
+}

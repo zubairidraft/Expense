@@ -15,10 +15,34 @@ export function NotificationProvider({ children }) {
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
+  // Synthetic (computed) alerts have no DB row; remember which ones the user dismissed
+  const [dismissedSynthetic, setDismissedSynthetic] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('expense_pro_dismissed_alerts') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const dismissSynthetic = (ids) => {
+    setDismissedSynthetic((prev) => {
+      const next = Array.from(new Set([...prev, ...ids])).slice(-500);
+      try {
+        localStorage.setItem('expense_pro_dismissed_alerts', JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   // Fetch notifications for workspace
+  const isRealWorkspace = Boolean(user && currentWorkspace?.id && currentWorkspace.id !== 'guest-space');
+
   const fetchNotifications = useCallback(async () => {
-    if (!currentWorkspace?.id) return;
+    if (!user || !currentWorkspace?.id || currentWorkspace.id === 'guest-space') {
+      setNotifications([]);
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -36,7 +60,7 @@ export function NotificationProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.id, user]);
 
   useEffect(() => {
     fetchNotifications();
@@ -44,9 +68,14 @@ export function NotificationProvider({ children }) {
 
   // Mark single notification as read
   const markAsRead = async (id) => {
+    if (!notifications.some((n) => n.id === id)) {
+      dismissSynthetic([id]);
+      return;
+    }
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n))
     );
+    if (!isRealWorkspace || String(id).startsWith('local-')) return;
     try {
       await supabase.rpc('mark_notification_read', { p_notification_id: id });
     } catch (err) {
@@ -56,10 +85,11 @@ export function NotificationProvider({ children }) {
 
   // Mark all notifications as read
   const markAllAsRead = async () => {
+    dismissSynthetic(syntheticAlerts.map((a) => a.id));
     setNotifications((prev) =>
       prev.map((n) => ({ ...n, is_read: true, read_at: new Date().toISOString() }))
     );
-    if (!currentWorkspace?.id) return;
+    if (!isRealWorkspace) return;
     try {
       await supabase.rpc('mark_all_notifications_read', { p_workspace_id: currentWorkspace.id });
     } catch (err) {
@@ -84,7 +114,7 @@ export function NotificationProvider({ children }) {
 
     setNotifications((prev) => [newNotif, ...prev]);
 
-    if (currentWorkspace?.id) {
+    if (isRealWorkspace) {
       try {
         const { data } = await supabase
           .from('notifications')
@@ -144,7 +174,7 @@ export function NotificationProvider({ children }) {
     // Check recurring due within 3 days
     const now = new Date();
     recurringProfiles.forEach((r) => {
-      if (r.next_due_date && r.is_active !== false) {
+      if (r.next_due_date && r.active !== false && r.is_active !== false) {
         const dueDate = new Date(r.next_due_date);
         const diffDays = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
         if (diffDays >= 0 && diffDays <= 3) {
@@ -168,11 +198,11 @@ export function NotificationProvider({ children }) {
     // Deduplicate synthetic alerts against existing notifications
     syntheticAlerts.forEach((alert) => {
       if (!combined.some((n) => n.id === alert.id || (n.title === alert.title && !n.is_read))) {
-        combined.push(alert);
+        combined.push(dismissedSynthetic.includes(alert.id) ? { ...alert, is_read: true } : alert);
       }
     });
     return combined;
-  }, [notifications, syntheticAlerts]);
+  }, [notifications, syntheticAlerts, dismissedSynthetic]);
 
   const unreadCount = useMemo(() => {
     return allNotifications.filter((n) => !n.is_read).length;

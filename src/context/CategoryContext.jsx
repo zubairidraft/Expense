@@ -225,13 +225,15 @@ export function CategoryProvider({ children }) {
 
       if (merchErr) throw merchErr;
 
-      setCategories(catData || DEFAULT_GUEST_CATEGORIES);
+      setCategories(catData || []);
       setTags(tagData || []);
       setMerchants(merchData || []);
     } catch (err) {
       console.warn('[CategoryContext] Error fetching catalog:', err.message);
       setError(err.message);
-      setCategories(DEFAULT_GUEST_CATEGORIES);
+      setCategories([]);
+      setTags([]);
+      setMerchants([]);
     } finally {
       setLoading(false);
     }

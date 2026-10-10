@@ -3,19 +3,22 @@ import { useAccounts } from '../../context/AccountContext';
 import { useCategories } from '../../context/CategoryContext';
 import { useTransactions } from '../../context/TransactionContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import MoneyInput from '../ui/MoneyInput';
+import { todayISO } from '../../lib/dates';
 
 export default function CreateTransactionModal({ isOpen, onClose, initialDraft = null }) {
   const { accounts } = useAccounts();
   const { categories, merchants, tags, expenseCategories, incomeCategories } = useCategories();
   const { addTransaction } = useTransactions();
   const { currentWorkspace } = useWorkspace();
+  const { convert } = useCurrency() || {};
 
   const baseCurrency = currentWorkspace?.base_currency || 'USD';
 
   // Form State
   const [type, setType] = useState('expense'); // 'expense' | 'income' | 'transfer' | 'refund'
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(todayISO());
   const [payeeName, setPayeeName] = useState('');
   const [selectedMerchantId, setSelectedMerchantId] = useState('');
   const [notes, setNotes] = useState('');
@@ -32,6 +35,7 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
   const [toAccountId, setToAccountId] = useState('');
   const [transferAmount, setTransferAmount] = useState('');
   const [feeAmount, setFeeAmount] = useState('');
+  const [receivedAmount, setReceivedAmount] = useState(''); // cross-currency destination amount
 
   // Split Mode State
   const [isSplit, setIsSplit] = useState(false);
@@ -50,8 +54,11 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
     if (initialDraft && isOpen) {
       if (initialDraft.type) setType(initialDraft.type);
       if (initialDraft.date) setDate(initialDraft.date);
-      if (initialDraft.merchantName) setPayeeName(initialDraft.merchantName);
-      if (initialDraft.totalAmount) setAmount(initialDraft.totalAmount);
+      const draftPayee = initialDraft.merchantName || initialDraft.payeeName || initialDraft.title;
+      if (draftPayee) setPayeeName(draftPayee);
+      const draftAmount = initialDraft.totalAmount || initialDraft.amount;
+      if (draftAmount) setAmount(String(draftAmount));
+      if (initialDraft.accountId) setAccountId(initialDraft.accountId);
       if (initialDraft.notes) setNotes(initialDraft.notes);
     }
   }, [initialDraft, isOpen]);
@@ -63,6 +70,15 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
   const effectiveAccountId = accountId || defaultAccount;
   const targetCategoryList = type === 'income' ? incomeCategories : expenseCategories;
   const effectiveCategoryId = categoryId || targetCategoryList[0]?.id || '';
+
+  // Transfer accounts exactly as shown in the selects
+  const transferSrc = accounts.find((a) => a.id === (fromAccountId || accounts[0]?.id));
+  const transferDest = accounts.find((a) => a.id === (toAccountId || accounts[1]?.id || accounts[0]?.id));
+  const isCrossCurrency = Boolean(transferSrc && transferDest && transferSrc.currency !== transferDest.currency);
+  const suggestedReceived =
+    isCrossCurrency && transferAmount && convert
+      ? convert(transferAmount, transferSrc.currency, transferDest.currency)
+      : '';
 
   const handleMerchantChange = (mId) => {
     setSelectedMerchantId(mId);
@@ -105,8 +121,8 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
       let linesToBook = [];
 
       if (type === 'transfer') {
-        const srcAcc = accounts.find((a) => a.id === fromAccountId) || accounts[0];
-        const destAcc = accounts.find((a) => a.id === toAccountId) || accounts[1];
+        const srcAcc = transferSrc;
+        const destAcc = transferDest;
 
         if (!srcAcc || !destAcc || srcAcc.id === destAcc.id) {
           throw new Error('Please select distinct source and destination accounts for the transfer');
@@ -123,18 +139,20 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
           direction: 'out',
           amount: transferAmount,
           currency: srcAcc.currency || baseCurrency,
-          baseAmount: transferAmount,
           description: `Transfer to ${destAcc.name}`,
         });
 
-        // In line to destination
+        // In line to destination (cross-currency: each side keeps its own currency)
+        const destAmount = isCrossCurrency ? receivedAmount : transferAmount;
+        if (!destAmount || parseFloat(destAmount) <= 0) {
+          throw new Error(`Enter the amount received in ${destAcc.currency}`);
+        }
         linesToBook.push({
           accountId: destAcc.id,
           categoryId: null,
           direction: 'in',
-          amount: transferAmount,
+          amount: destAmount,
           currency: destAcc.currency || baseCurrency,
-          baseAmount: transferAmount,
           description: `Transfer from ${srcAcc.name}`,
         });
 
@@ -146,7 +164,7 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
             direction: 'out',
             amount: feeAmount,
             currency: srcAcc.currency || baseCurrency,
-            baseAmount: feeAmount,
+            isFee: true,
             description: 'Transfer fee / bank charge',
           });
         }
@@ -165,7 +183,6 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
             direction: type === 'income' || type === 'refund' ? 'in' : 'out',
             amount: s.amount,
             currency: targetAcc.currency || baseCurrency,
-            baseAmount: s.amount,
             description: s.description || description,
           });
         }
@@ -181,7 +198,6 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
           direction: type === 'income' || type === 'refund' ? 'in' : 'out',
           amount: amount,
           currency: targetAcc.currency || baseCurrency,
-          baseAmount: amount,
           description: description,
         });
       }
@@ -207,6 +223,7 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
       setNotes('');
       setTransferAmount('');
       setFeeAmount('');
+      setReceivedAmount('');
       onClose();
     } catch (err) {
       console.error('[CreateTransactionModal] Error:', err);
@@ -352,8 +369,12 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
                     onChange={(e) => setFromAccountId(e.target.value)}
                   >
                     {accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({a.currency})
+                      <option
+                        key={a.id}
+                        value={a.id}
+                        disabled={a.is_shared && a.can_post === false}
+                      >
+                        {a.name} ({a.currency}){a.is_shared ? ` (Shared${a.can_post === false ? ' - Read Only' : ''})` : ''}
                       </option>
                     ))}
                   </select>
@@ -368,8 +389,12 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
                     onChange={(e) => setToAccountId(e.target.value)}
                   >
                     {accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({a.currency})
+                      <option
+                        key={a.id}
+                        value={a.id}
+                        disabled={a.is_shared && a.can_post === false}
+                      >
+                        {a.name} ({a.currency}){a.is_shared ? ` (Shared${a.can_post === false ? ' - Read Only' : ''})` : ''}
                       </option>
                     ))}
                   </select>
@@ -380,14 +405,38 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
                 <div className="form-group">
                   <MoneyInput
                     id="tr-amount"
-                    label="Transfer Amount"
+                    label="Amount Sent"
                     value={transferAmount}
                     onChange={setTransferAmount}
-                    currencyCode={baseCurrency}
+                    currencyCode={transferSrc?.currency || baseCurrency}
                     placeholder="0.00"
                     required
                   />
                 </div>
+
+                {isCrossCurrency && (
+                  <div className="form-group">
+                    <MoneyInput
+                      id="tr-received"
+                      label={`Amount Received (${transferDest.currency})`}
+                      value={receivedAmount}
+                      onChange={setReceivedAmount}
+                      currencyCode={transferDest.currency}
+                      placeholder={suggestedReceived || '0.00'}
+                      required
+                    />
+                    {suggestedReceived && !receivedAmount && (
+                      <button
+                        type="button"
+                        className="btn-link"
+                        style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}
+                        onClick={() => setReceivedAmount(String(suggestedReceived))}
+                      >
+                        Use estimated {suggestedReceived} {transferDest.currency}
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 <div className="form-group">
                   <MoneyInput
@@ -395,7 +444,7 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
                     label="Bank / Wire Fee (Optional)"
                     value={feeAmount}
                     onChange={setFeeAmount}
-                    currencyCode={baseCurrency}
+                    currencyCode={transferSrc?.currency || baseCurrency}
                     placeholder="0.00"
                   />
                 </div>
@@ -414,8 +463,12 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
                     onChange={(e) => setAccountId(e.target.value)}
                   >
                     {accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({a.currency})
+                      <option
+                        key={a.id}
+                        value={a.id}
+                        disabled={a.is_shared && a.can_post === false}
+                      >
+                        {a.name} ({a.currency}){a.is_shared ? ` (Shared${a.can_post === false ? ' - Read Only' : ''})` : ''}
                       </option>
                     ))}
                   </select>
@@ -540,7 +593,7 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
                       className={`tag-select-chip ${isSelected ? 'selected' : ''}`}
                       style={{
                         borderColor: isSelected ? tag.color : 'transparent',
-                        backgroundColor: isSelected ? `${tag.color}22` : 'rgba(255,255,255,0.05)',
+                        backgroundColor: isSelected ? `${tag.color}22` : 'rgba(var(--md-on-surface-rgb), 0.05)',
                       }}
                       onClick={() => toggleTag(tag.id)}
                     >

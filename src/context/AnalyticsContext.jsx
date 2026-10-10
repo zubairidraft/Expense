@@ -11,12 +11,23 @@ import {
   calculateSpendingVelocity,
   projectCashFlowForecast,
 } from '@universal-expense/core';
+import { todayISO } from '../lib/dates';
+import { sumMoney, toNum, isLiveTransaction } from '../lib/money';
+
+// Base-currency total of all lines of a live transaction (handles splits & FX)
+const txBaseTotal = (t) =>
+  toNum(sumMoney((t.lines || []).map((l) => l.base_amount ?? l.amount ?? '0')));
+
 
 const AnalyticsContext = createContext(null);
 
 export function AnalyticsProvider({ children }) {
   const { currentWorkspace } = useWorkspace();
-  const { transactions } = useTransactions();
+  const { transactions: allTransactions } = useTransactions();
+  const transactions = useMemo(
+    () => allTransactions.filter((t) => isLiveTransaction(t) && !t.is_foreign),
+    [allTransactions]
+  );
   const { accounts } = useAccounts();
   const { recurringProfiles } = useRecurring();
   const { budgets } = useBudgets();
@@ -24,12 +35,17 @@ export function AnalyticsProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [dbNetWorth, setDbNetWorth] = useState(null);
   const [dbCashFlow, setDbCashFlow] = useState([]);
-  const [dbCategorySpending, setDbCategorySpending] = useState([]);
+  const [, setDbCategorySpending] = useState([]);
   const [forecastHorizon, setForecastHorizon] = useState(90);
 
   // Fetch Supabase views if available
   const fetchAnalyticsViews = useCallback(async () => {
-    if (!currentWorkspace?.id) return;
+    if (!currentWorkspace?.id || currentWorkspace.id === 'guest-space') {
+      setDbNetWorth(null);
+      setDbCashFlow([]);
+      setDbCategorySpending([]);
+      return;
+    }
     setLoading(true);
     try {
       // 1. Net worth snapshot
@@ -39,9 +55,7 @@ export function AnalyticsProvider({ children }) {
         .eq('workspace_id', currentWorkspace.id)
         .maybeSingle();
 
-      if (nwData) {
-        setDbNetWorth(nwData);
-      }
+      setDbNetWorth(nwData || null);
 
       // 2. Monthly cash flow
       const { data: cfData } = await supabase
@@ -51,9 +65,7 @@ export function AnalyticsProvider({ children }) {
         .order('month_date', { ascending: false })
         .limit(12);
 
-      if (cfData) {
-        setDbCashFlow(cfData);
-      }
+      setDbCashFlow(cfData ? [...cfData].reverse() : []);
 
       // 3. Monthly spending by category
       const { data: scData } = await supabase
@@ -62,9 +74,7 @@ export function AnalyticsProvider({ children }) {
         .eq('workspace_id', currentWorkspace.id)
         .order('month_date', { ascending: false });
 
-      if (scData) {
-        setDbCategorySpending(scData);
-      }
+      setDbCategorySpending(scData || []);
     } catch (err) {
       console.warn('Could not fetch analytics views from DB, using client calculations:', err);
     } finally {
@@ -87,10 +97,10 @@ export function AnalyticsProvider({ children }) {
     }
     const assets = accounts
       .filter((a) => (a.nature || 'asset') === 'asset')
-      .reduce((acc, a) => acc + (parseFloat(a.balance || a.opening_balance || 0)), 0);
+      .reduce((acc, a) => acc + parseFloat(a.base_balance ?? a.balance ?? a.opening_balance ?? 0), 0);
     const liabilities = accounts
       .filter((a) => a.nature === 'liability')
-      .reduce((acc, a) => acc + (parseFloat(a.balance || a.opening_balance || 0)), 0);
+      .reduce((acc, a) => acc + parseFloat(a.base_balance ?? a.balance ?? a.opening_balance ?? 0), 0);
 
     return {
       totalAssets: assets,
@@ -105,10 +115,10 @@ export function AnalyticsProvider({ children }) {
     const daysElapsed = now.getDate();
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
-    const currentMonthPrefix = now.toISOString().slice(0, 7); // YYYY-MM
+    const currentMonthPrefix = todayISO().slice(0, 7); // YYYY-MM (local)
     const currentMonthExpenses = transactions
       .filter((t) => t.type === 'expense' && (t.date || '').startsWith(currentMonthPrefix))
-      .reduce((sum, t) => sum + parseFloat(t.amount || (t.lines?.[0]?.amount) || 0), 0);
+      .reduce((sum, t) => sum + txBaseTotal(t), 0);
 
     const totalBudgetLimit = budgets.reduce((sum, b) => sum + parseFloat(b.amount || 0), 0);
 
@@ -124,12 +134,12 @@ export function AnalyticsProvider({ children }) {
   const spendingAnomalies = useMemo(() => {
     if (!transactions.length) return [];
 
-    const formattedTxs = transactions.map((t) => ({
+    const formattedTxs = transactions.filter((t) => t.type === 'expense').map((t) => ({
       id: t.id,
       payeeName: t.payee_name || t.title || 'Expense',
       category: t.lines?.[0]?.category?.name || t.category || 'General',
-      amount: parseFloat(t.amount || t.lines?.[0]?.amount || 0),
-      date: t.date || new Date().toISOString().split('T')[0],
+      amount: txBaseTotal(t),
+      date: t.date || todayISO(),
     }));
 
     const historicalStats = calculateCategoryStats(formattedTxs);
@@ -143,7 +153,7 @@ export function AnalyticsProvider({ children }) {
   const cashFlowForecast = useMemo(() => {
     const startingBal = clientNetWorth.totalAssets;
     const recurringItems = recurringProfiles
-      .filter((r) => r.is_active !== false)
+      .filter((r) => r.active !== false && r.is_active !== false)
       .map((r) => {
         let dayOfMonth = 1;
         if (r.next_due_date) {
@@ -161,13 +171,70 @@ export function AnalyticsProvider({ children }) {
     return projectCashFlowForecast(startingBal, recurringItems, forecastHorizon);
   }, [clientNetWorth.totalAssets, recurringProfiles, forecastHorizon]);
 
+  // Real-time client monthly cash flow fallback
+  const clientCashFlow = useMemo(() => {
+    if (dbCashFlow && dbCashFlow.length > 0) return dbCashFlow;
+    const monthly = {};
+    for (const t of transactions) {
+      if (t.type !== 'income' && t.type !== 'expense') continue;
+      const month = (t.date || '').slice(0, 7);
+      if (!month) continue;
+      if (!monthly[month]) {
+        monthly[month] = { income: 0, expense: 0 };
+      }
+      const amt = txBaseTotal(t);
+      if (t.type === 'income') monthly[month].income += amt;
+      else if (t.type === 'expense') monthly[month].expense += amt;
+    }
+
+    if (Object.keys(monthly).length === 0) return [];
+
+    const monthsSorted = Object.keys(monthly).sort();
+    return monthsSorted.map((m) => {
+      const inc = monthly[m].income;
+      const exp = monthly[m].expense;
+      const net = inc - exp;
+      const rate = inc > 0 ? ((net / inc) * 100).toFixed(1) : '0.0';
+      return {
+        month_date: `${m}-01`,
+        total_income: inc.toFixed(2),
+        total_expense: exp.toFixed(2),
+        net_cash_flow: net.toFixed(2),
+        savings_rate_percent: rate,
+      };
+    });
+  }, [dbCashFlow, transactions]);
+
+  // Category spending (all lines, base currency) computed from the RLS-scoped ledger
+  const clientCategorySpending = useMemo(() => {
+    const catMap = {};
+    let totalExp = 0;
+    for (const t of transactions) {
+      if (t.type !== 'expense') continue;
+      for (const l of t.lines || []) {
+        if (l.direction !== 'out') continue;
+        const catName = l.category?.name || t.category || 'Uncategorized';
+        const amt = parseFloat(l.base_amount ?? l.amount ?? 0);
+        catMap[catName] = (catMap[catName] || 0) + amt;
+        totalExp += amt;
+      }
+    }
+    return Object.entries(catMap)
+      .map(([name, amount]) => ({
+        category_name: name,
+        total_spent: amount.toFixed(2),
+        percentage: totalExp > 0 ? ((amount / totalExp) * 100).toFixed(1) : '0.0',
+      }))
+      .sort((a, b) => parseFloat(b.total_spent) - parseFloat(a.total_spent));
+  }, [transactions]);
+
   return (
     <AnalyticsContext.Provider
       value={{
         loading,
         netWorth: clientNetWorth,
-        cashFlowHistory: dbCashFlow,
-        categorySpending: dbCategorySpending,
+        cashFlowHistory: clientCashFlow,
+        categorySpending: clientCategorySpending,
         currentVelocity,
         spendingAnomalies,
         cashFlowForecast,

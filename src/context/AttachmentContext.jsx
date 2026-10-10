@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useWorkspace } from './WorkspaceContext';
 import { parseRawReceiptText, generateDraftFromReceipt } from '@universal-expense/core';
+import { todayISO } from '../lib/dates';
 
 const AttachmentContext = createContext(null);
 
@@ -68,7 +69,7 @@ export function AttachmentProvider({ children }) {
         ocrRawText = `
 RECEIPT / TAX INVOICE
 Store: ${file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')}
-Date: ${new Date().toISOString().split('T')[0]}
+Date: ${todayISO()}
 Total Amount: 42.50 USD
 Tax: 2.15 USD
 Payment: Paid in Full

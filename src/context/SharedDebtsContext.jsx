@@ -2,11 +2,14 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo } 
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useWorkspace } from './WorkspaceContext';
+import { useTransactions } from './TransactionContext';
+import { useAccounts } from './AccountContext';
 import {
   simplifyDebts,
   generateInstallmentSchedule,
   roundMoney,
 } from '@universal-expense/core';
+import { todayISO } from '../lib/dates';
 
 const SharedDebtsContext = createContext(null);
 
@@ -130,6 +133,8 @@ const DEFAULT_GUEST_INSTALLMENTS = [
 export function SharedDebtsProvider({ children }) {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  const { addTransaction, refreshTransactions } = useTransactions() || {};
+  const { accounts = [], refreshAccounts } = useAccounts() || {};
 
   const [contacts, setContacts] = useState(DEFAULT_GUEST_CONTACTS);
   const [sharedExpenses, setSharedExpenses] = useState(DEFAULT_GUEST_SHARED_EXPENSES);
@@ -191,6 +196,10 @@ export function SharedDebtsProvider({ children }) {
     } catch (err) {
       console.error('Error fetching Stage D data:', err);
       setError(err.message);
+      setContacts([]);
+      setSharedExpenses([]);
+      setDebts([]);
+      setInstallmentPlans([]);
     } finally {
       setLoading(false);
     }
@@ -286,7 +295,7 @@ export function SharedDebtsProvider({ children }) {
       const newExpense = {
         id: `se-${Date.now()}`,
         title,
-        total_amount: roundMoney(totalAmount),
+        total_amount: roundMoney(String(totalAmount ?? '0'), 2),
         currency: currency || 'USD',
         split_method: splitMethod,
         payer_contact_id: payerContactId || null,
@@ -295,7 +304,7 @@ export function SharedDebtsProvider({ children }) {
         splits: splits.map((s, idx) => ({
           id: `sp-${Date.now()}-${idx}`,
           contact_id: s.contactId,
-          share_amount: roundMoney(s.shareAmount),
+          share_amount: roundMoney(String(s.shareAmount ?? '0'), 2),
           paid_amount: '0.00',
           settled: false,
         })),
@@ -309,7 +318,7 @@ export function SharedDebtsProvider({ children }) {
       .insert({
         workspace_id: currentWorkspace.id,
         title,
-        total_amount: roundMoney(totalAmount),
+        total_amount: roundMoney(String(totalAmount ?? '0'), 2),
         currency: currency || 'USD',
         split_method: splitMethod,
         payer_contact_id: payerContactId || null,
@@ -324,7 +333,7 @@ export function SharedDebtsProvider({ children }) {
       shared_expense_id: expData.id,
       workspace_id: currentWorkspace.id,
       contact_id: s.contactId,
-      share_amount: roundMoney(s.shareAmount),
+      share_amount: roundMoney(String(s.shareAmount ?? '0'), 2),
       share_percentage: s.sharePercentage || null,
       shares_count: s.sharesCount || null,
       paid_amount: 0,
@@ -365,11 +374,41 @@ export function SharedDebtsProvider({ children }) {
   };
 
   const createDebt = async (debtInput) => {
-    const { contactId, direction, principal, currency, dueDate, notes } = debtInput;
-    const rounded = roundMoney(principal);
+    const { contactId, direction, principal, currency, dueDate, notes, accountId } = debtInput;
+    const rounded = roundMoney(String(principal ?? '0'), 2);
+    const contactObj = contacts.find((c) => c.id === contactId);
+
+    // Cash movement for the loan itself (type 'debt' -> never counted as income/expense)
+    let disburseTxId = null;
+    if (accountId && addTransaction) {
+      const acc = accounts.find((a) => a.id === accountId);
+      if (acc && currency && acc.currency !== currency) {
+        throw new Error(`Account currency (${acc.currency}) must match the loan currency (${currency})`);
+      }
+      const isBorrowed = direction === 'borrowed';
+      const res = await addTransaction({
+        type: 'debt',
+        date: todayISO(),
+        payeeName: isBorrowed
+          ? `Loan received from ${contactObj?.name || 'Contact'}`
+          : `Loan given to ${contactObj?.name || 'Contact'}`,
+        notes: notes || '',
+        status: 'cleared',
+        lines: [
+          {
+            accountId,
+            categoryId: null,
+            direction: isBorrowed ? 'in' : 'out',
+            amount: String(rounded),
+            description: isBorrowed ? 'Loan proceeds' : 'Loan disbursement',
+          },
+        ],
+      });
+      if (res?.error) throw res.error;
+      disburseTxId = typeof res?.data === 'string' ? res.data : null;
+    }
 
     if (!currentWorkspace?.id || !user || currentWorkspace.id === 'guest-space') {
-      const contactObj = contacts.find((c) => c.id === contactId);
       const newDebt = {
         id: `d-${Date.now()}`,
         contact_id: contactId,
@@ -403,42 +442,84 @@ export function SharedDebtsProvider({ children }) {
       .single();
 
     if (error) throw error;
+
+    // Audit trail: disbursement event linked to the ledger transaction
+    await supabase.from('debt_events').insert({
+      debt_id: data.id,
+      workspace_id: currentWorkspace.id,
+      transaction_id: disburseTxId,
+      event_type: 'disburse',
+      amount: rounded,
+      payment_date: todayISO(),
+      notes: notes || null,
+    });
+
     setDebts((prev) => [data, ...prev]);
     return data;
   };
 
-  const recordDebtPayment = async ({ debtId, amount, eventType, paymentDate, notes }) => {
-    const payAmt = parseFloat(amount || 0);
+  const recordDebtPayment = async ({ debtId, amount, eventType, paymentDate, notes, accountId }) => {
+    const targetDebt = debts.find((d) => d.id === debtId);
+    if (!targetDebt) throw new Error('Debt not found');
+    const payAmt = roundMoney(String(amount ?? '0'), 2);
+    if (parseFloat(payAmt) <= 0) throw new Error('Amount must be greater than zero');
+    if (parseFloat(payAmt) > parseFloat(targetDebt.remaining_amount || 0)) {
+      throw new Error('Payment is more than the remaining balance');
+    }
 
     if (!currentWorkspace?.id || !user || currentWorkspace.id === 'guest-space') {
+      if (accountId && (eventType || 'repayment') === 'repayment' && addTransaction) {
+        const isRepayingBorrowed = targetDebt.direction === 'borrowed';
+        const res = await addTransaction({
+          type: 'debt',
+          date: paymentDate || todayISO(),
+          payeeName: isRepayingBorrowed
+            ? `Loan repayment to ${targetDebt.contact?.name || 'Contact'}`
+            : `Loan recovery from ${targetDebt.contact?.name || 'Contact'}`,
+          notes: notes || '',
+          status: 'cleared',
+          lines: [
+            {
+              accountId,
+              categoryId: null,
+              direction: isRepayingBorrowed ? 'out' : 'in',
+              amount: payAmt,
+              currency: targetDebt.currency || 'USD',
+              description: 'Debt repayment',
+            },
+          ],
+        });
+        if (res?.error) throw res.error;
+      }
       setDebts((prev) =>
         prev.map((d) => {
-          if (d.id === debtId) {
-            const currentRem = parseFloat(d.remaining_amount || d.remainingAmount || 0);
-            const newRem = Math.max(0, currentRem - payAmt);
-            return {
-              ...d,
-              remaining_amount: newRem.toFixed(2),
-              status: newRem === 0 ? 'settled' : 'partially_settled',
-            };
-          }
-          return d;
+          if (d.id !== debtId) return d;
+          const newRem = Math.max(0, parseFloat(d.remaining_amount || 0) - parseFloat(payAmt));
+          return {
+            ...d,
+            remaining_amount: newRem.toFixed(2),
+            status: newRem === 0 ? (eventType === 'forgive' ? 'written_off' : 'settled') : 'partially_settled',
+          };
         })
       );
       return;
     }
 
-    // Call stored procedure
+    // One atomic server call: ledger line (if account) + debt update + event
     const { data, error } = await supabase.rpc('record_debt_payment', {
       p_debt_id: debtId,
       p_amount: payAmt,
       p_event_type: eventType || 'repayment',
       p_notes: notes || null,
-      p_payment_date: paymentDate || new Date().toISOString().split('T')[0],
+      p_payment_date: paymentDate || todayISO(),
+      p_account_id: (eventType || 'repayment') === 'repayment' ? accountId || null : null,
+      p_idempotency_key: `debt-${debtId}-${Date.now()}`,
     });
 
     if (error) throw error;
-    fetchData();
+    await fetchData();
+    if (refreshTransactions) refreshTransactions();
+    if (refreshAccounts) refreshAccounts();
     return data;
   };
 
@@ -451,8 +532,8 @@ export function SharedDebtsProvider({ children }) {
       const newPlan = {
         id: `ip-${Date.now()}`,
         name,
-        principal_amount: roundMoney(principalAmount),
-        interest_or_fee: roundMoney(interestOrFee || '0.00'),
+        principal_amount: roundMoney(String(principalAmount ?? '0'), 2),
+        interest_or_fee: roundMoney(String(interestOrFee || '0.00'), 2),
         total_amount: total,
         currency: currency || 'USD',
         total_installments: totalInstallments,
@@ -473,8 +554,8 @@ export function SharedDebtsProvider({ children }) {
       .insert({
         workspace_id: currentWorkspace.id,
         name,
-        principal_amount: roundMoney(principalAmount),
-        interest_or_fee: roundMoney(interestOrFee || '0.00'),
+        principal_amount: roundMoney(String(principalAmount ?? '0'), 2),
+        interest_or_fee: roundMoney(String(interestOrFee || '0.00'), 2),
         total_amount: total,
         currency: currency || 'USD',
         total_installments: totalInstallments,
@@ -509,13 +590,17 @@ export function SharedDebtsProvider({ children }) {
       status: 'pending',
     }));
 
-    await supabase.from('installment_schedules').insert(scheduleRows);
+    const { error: schedInsErr } = await supabase.from('installment_schedules').insert(scheduleRows);
+    if (schedInsErr) {
+      await supabase.from('installment_plans').delete().eq('id', planData.id);
+      throw schedInsErr;
+    }
 
     setInstallmentPlans((prev) => [planData, ...prev]);
     return planData;
   };
 
-  const payInstallment = async (planId) => {
+  const payInstallment = async (planId, fromAccountId = null) => {
     if (!currentWorkspace?.id || !user || currentWorkspace.id === 'guest-space') {
       setInstallmentPlans((prev) =>
         prev.map((p) => {
@@ -548,10 +633,16 @@ export function SharedDebtsProvider({ children }) {
     const { data, error } = await supabase.rpc('pay_installment_schedule', {
       p_schedule_id: sched.id,
       p_amount: sched.amount,
+      p_from_account_id: fromAccountId || null,
+      p_idempotency_key: `installment-${sched.id}`,
     });
 
     if (error) throw error;
-    fetchData();
+    await fetchData();
+    if (fromAccountId) {
+      if (refreshTransactions) refreshTransactions();
+      if (refreshAccounts) refreshAccounts();
+    }
     return data;
   };
 

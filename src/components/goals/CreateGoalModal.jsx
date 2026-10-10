@@ -89,9 +89,9 @@ export default function CreateGoalModal({ isOpen, onClose }) {
             style={{
               padding: '0.75rem 1rem',
               borderRadius: '8px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#f87171',
+              background: 'rgba(var(--md-error-rgb), 0.15)',
+              border: '1px solid rgba(var(--md-error-rgb), 0.3)',
+              color: 'var(--md-error)',
               marginBottom: '1rem',
               fontSize: '0.875rem',
             }}
@@ -130,8 +130,8 @@ export default function CreateGoalModal({ isOpen, onClose }) {
                     width: '42px',
                     height: '42px',
                     borderRadius: '8px',
-                    border: icon === ic ? '2px solid #6366f1' : '1px solid rgba(255, 255, 255, 0.1)',
-                    background: icon === ic ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                    border: icon === ic ? '2px solid var(--md-primary)' : '1px solid rgba(var(--md-on-surface-rgb), 0.1)',
+                    background: icon === ic ? 'rgba(var(--md-primary-rgb), 0.2)' : 'rgba(var(--md-on-surface-rgb), 0.03)',
                     cursor: 'pointer',
                   }}
                 >

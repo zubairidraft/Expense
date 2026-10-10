@@ -1,16 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSharedDebts } from '../../context/SharedDebtsContext';
+import { useAccounts } from '../../context/AccountContext';
 import MoneyInput from '../ui/MoneyInput';
+import { todayISO } from '../../lib/dates';
 
 export default function RecordDebtPaymentModal({ isOpen, onClose, debt }) {
   const { recordDebtPayment } = useSharedDebts();
+  const { accounts } = useAccounts();
 
   const [amount, setAmount] = useState(debt?.remaining_amount || debt?.remainingAmount || '0.00');
+  const [accountId, setAccountId] = useState(accounts[0]?.id || '');
   const [eventType, setEventType] = useState('repayment'); // 'repayment' vs 'forgive'
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentDate, setPaymentDate] = useState(todayISO());
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (debt) {
+      setAmount(debt?.remaining_amount || debt?.remainingAmount || '0.00');
+      // Default to an account in the same currency as the debt
+      const match = accounts.find((a) => a.currency === debt.currency);
+      if (match) setAccountId(match.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debt]);
+
+  useEffect(() => {
+    if (accounts?.length && !accountId) {
+      setAccountId(accounts[0].id);
+    }
+  }, [accounts, accountId]);
 
   if (!isOpen || !debt) return null;
 
@@ -37,6 +57,7 @@ export default function RecordDebtPaymentModal({ isOpen, onClose, debt }) {
         eventType,
         paymentDate,
         notes: notes.trim() || null,
+        accountId: eventType === 'repayment' ? accountId : null,
       });
       onClose();
     } catch (err) {
@@ -63,18 +84,18 @@ export default function RecordDebtPaymentModal({ isOpen, onClose, debt }) {
 
         <div
           style={{
-            background: 'rgba(255, 255, 255, 0.03)',
+            background: 'rgba(var(--md-on-surface-rgb), 0.03)',
             borderRadius: '8px',
             padding: '0.75rem 1rem',
             marginBottom: '1rem',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
           }}
         >
-          <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Contact / Party</div>
-          <div style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--md-on-surface-variant)' }}>Contact / Party</div>
+          <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--md-on-surface)' }}>
             {debt.contact?.name || 'Contact'} ({debt.direction === 'lent' ? 'They owe you' : 'You owe them'})
           </div>
-          <div style={{ fontSize: '0.85rem', color: '#10b981', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--md-success)', marginTop: '0.25rem' }}>
             Outstanding Balance: <strong>${remaining.toFixed(2)} {debt.currency}</strong>
           </div>
         </div>
@@ -90,9 +111,9 @@ export default function RecordDebtPaymentModal({ isOpen, onClose, debt }) {
                 style={{
                   padding: '0.5rem',
                   fontSize: '0.85rem',
-                  background: eventType === 'repayment' ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                  borderColor: eventType === 'repayment' ? '#6366f1' : 'transparent',
-                  color: eventType === 'repayment' ? '#fff' : '#94a3b8',
+                  background: eventType === 'repayment' ? 'rgba(var(--md-primary-rgb), 0.25)' : 'rgba(var(--md-on-surface-rgb), 0.04)',
+                  borderColor: eventType === 'repayment' ? 'var(--md-primary)' : 'transparent',
+                  color: eventType === 'repayment' ? 'var(--md-on-primary)' : 'var(--md-on-surface-variant)',
                 }}
               >
                 💸 Repayment (Settled)
@@ -104,9 +125,9 @@ export default function RecordDebtPaymentModal({ isOpen, onClose, debt }) {
                 style={{
                   padding: '0.5rem',
                   fontSize: '0.85rem',
-                  background: eventType === 'forgive' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                  borderColor: eventType === 'forgive' ? '#ef4444' : 'transparent',
-                  color: eventType === 'forgive' ? '#ef4444' : '#94a3b8',
+                  background: eventType === 'forgive' ? 'rgba(var(--md-error-rgb), 0.2)' : 'rgba(var(--md-on-surface-rgb), 0.04)',
+                  borderColor: eventType === 'forgive' ? 'var(--md-error)' : 'transparent',
+                  color: eventType === 'forgive' ? 'var(--md-error)' : 'var(--md-on-surface-variant)',
                 }}
               >
                 🤝 Forgive Balance
@@ -135,6 +156,32 @@ export default function RecordDebtPaymentModal({ isOpen, onClose, debt }) {
               />
             </div>
           </div>
+
+          {eventType === 'repayment' && (
+            <div className="form-group">
+              <label className="form-label">
+                {debt.direction === 'borrowed' ? '📤 Deduct Payment From Account *' : '📥 Deposit Repayment Into Account *'}
+              </label>
+              <select
+                className="form-input"
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                required
+              >
+                <option value="">Select account...</option>
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.icon || '💳'} {acc.name} ({acc.currency})
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary, var(--md-on-surface-variant))', marginTop: '0.3rem' }}>
+                {debt.direction === 'borrowed'
+                  ? '💡 Payment will be deducted from this account to settle your debt.'
+                  : '💡 Debt recovery funds will be added into this account.'}
+              </div>
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Notes (Optional)</label>

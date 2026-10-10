@@ -106,6 +106,8 @@ export function BusinessProvider({ children }) {
     } catch (err) {
       console.error('Error fetching business modules data:', err);
       setError(err.message);
+      setProjects([]);
+      setCostCenters([]);
     } finally {
       setLoading(false);
     }

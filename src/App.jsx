@@ -1,10 +1,6 @@
-import { useState, useMemo, useEffect } from 'react'
-import { Agentation } from 'agentation'
+import { useState, useMemo, useEffect, lazy, Suspense } from 'react'
 import { useAuth } from './context/AuthContext'
-import { useWorkspace } from './context/WorkspaceContext'
 import { useAccounts } from './context/AccountContext'
-import { useTransactions } from './context/TransactionContext'
-import { CURRENCY_REGISTRY } from './lib/formatters'
 import Navbar from './components/layout/Navbar'
 import Sidebar from './components/layout/Sidebar'
 import MobileNav from './components/layout/MobileNav'
@@ -12,9 +8,6 @@ import AuthModal from './components/auth/AuthModal'
 import ProfileSettingsModal from './components/profile/ProfileSettingsModal'
 import CreateWorkspaceModal from './components/workspace/CreateWorkspaceModal'
 import WorkspaceMembersModal from './components/workspace/WorkspaceMembersModal'
-import MoneyInput from './components/ui/MoneyInput'
-import MoneyDisplay from './components/ui/MoneyDisplay'
-import StatCard from './components/ui/StatCard'
 import AccountsView from './components/accounts/AccountsView'
 import CreateAccountModal from './components/accounts/CreateAccountModal'
 import CategoriesView from './components/categories/CategoriesView'
@@ -24,6 +17,7 @@ import CreateTagModal from './components/categories/CreateTagModal'
 import TransactionsView from './components/transactions/TransactionsView'
 import CreateTransactionModal from './components/transactions/CreateTransactionModal'
 import QuickAddModal from './components/transactions/QuickAddModal'
+import TransferModal from './components/transactions/TransferModal'
 import ReconciliationModal from './components/reconciliation/ReconciliationModal'
 import RulesModal from './components/rules/RulesModal'
 import ReceiptUploadModal from './components/receipts/ReceiptUploadModal'
@@ -46,89 +40,25 @@ import CurrencyConverterModal from './components/currency/CurrencyConverterModal
 import ImportExportModal from './components/imports/ImportExportModal'
 import AnalyticsView from './components/analytics/AnalyticsView'
 import ReportsView from './components/reports/ReportsView'
+import PreferencesView from './components/settings/PreferencesView'
+import DashboardView from './components/dashboard/DashboardView'
 import ZakatCalculatorModal from './components/regional/ZakatCalculatorModal'
 import NotificationCenterModal from './components/notifications/NotificationCenterModal'
+import OnboardingModal from './components/onboarding/OnboardingModal'
+import AppearanceModal from './components/settings/AppearanceModal'
 import './App.css'
+import './styles/material.css'
 
-const INITIAL_TRANSACTIONS = [
-  {
-    id: 'tx-1',
-    title: 'Client Payment (Design System)',
-    amount: 3200,
-    type: 'income',
-    category: 'Freelance',
-    date: '2026-10-06',
-    icon: '💼',
-  },
-  {
-    id: 'tx-2',
-    title: 'Cloud Infrastructure (AWS & Supabase)',
-    amount: 145.5,
-    type: 'expense',
-    category: 'Software & Tools',
-    date: '2026-10-05',
-    icon: '☁️',
-  },
-  {
-    id: 'tx-3',
-    title: 'Organic Groceries',
-    amount: 88.2,
-    type: 'expense',
-    category: 'Groceries',
-    date: '2026-10-04',
-    icon: '🛒',
-  },
-  {
-    id: 'tx-4',
-    title: 'Office Ergonomic Chair',
-    amount: 320,
-    type: 'expense',
-    category: 'Workplace',
-    date: '2026-10-02',
-    icon: '🪑',
-  },
-  {
-    id: 'tx-5',
-    title: 'Dividend Payout',
-    amount: 450,
-    type: 'income',
-    category: 'Investments',
-    date: '2026-10-01',
-    icon: '📈',
-  },
-]
+// Dev-only visual annotation toolbar: never shipped to / executed in production builds
+const Agentation = import.meta.env.DEV
+  ? lazy(() => import('agentation').then((m) => ({ default: m.Agentation })))
+  : null
 
-const CATEGORIES = {
-  expense: [
-    { label: 'Software & Tools', icon: '☁️', color: '#6366f1' },
-    { label: 'Groceries', icon: '🛒', color: '#10b981' },
-    { label: 'Workplace', icon: '🪑', color: '#f59e0b' },
-    { label: 'Dining Out', icon: '🍜', color: '#ec4899' },
-    { label: 'Transport', icon: '🚗', color: '#06b6d4' },
-    { label: 'Health & Wellness', icon: '🌿', color: '#14b8a6' },
-    { label: 'Other', icon: '📦', color: '#8b5cf6' },
-  ],
-  income: [
-    { label: 'Salary / Client', icon: '💼', color: '#10b981' },
-    { label: 'Freelance', icon: '⚡', color: '#6366f1' },
-    { label: 'Investments', icon: '📈', color: '#3b82f6' },
-    { label: 'Other Income', icon: '💰', color: '#d946ef' },
-  ],
-}
+
 
 export default function App() {
-  const { profile } = useAuth()
-  const { currentWorkspace } = useWorkspace()
+  const { user, profile } = useAuth()
   const { accounts } = useAccounts()
-  const {
-    transactions,
-    totalIncome,
-    totalExpense,
-    balance,
-    savingsRate,
-    addTransaction,
-    deleteTransaction,
-  } = useTransactions()
 
   // App Shell Navigation State
   const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'transactions' | 'accounts' | 'categories' | 'budgets' | 'analytics' | 'settings'
@@ -167,8 +97,61 @@ export default function App() {
   const [importExportModalOpen, setImportExportModalOpen] = useState(false)
   const [zakatModalOpen, setZakatModalOpen] = useState(false)
   const [notificationsModalOpen, setNotificationsModalOpen] = useState(false)
+  const [onboardingModalOpen, setOnboardingModalOpen] = useState(false)
+  const [appearanceModalOpen, setAppearanceModalOpen] = useState(false)
+  const [transferModalOpen, setTransferModalOpen] = useState(false)
+  const [transferInitialData, setTransferInitialData] = useState(null)
 
-  // Global Keyboard Shortcuts (Ctrl+K or Q or / for Quick Add)
+  const handleOpenTransfer = (opts = {}) => {
+    setTransferInitialData({
+      defaultFromAccountId: opts?.fromAccountId || opts?.defaultFromAccountId || '',
+      defaultToAccountId: opts?.toAccountId || opts?.defaultToAccountId || '',
+      editTransaction: opts?.editTransaction || null,
+    })
+    setTransferModalOpen(true)
+  }
+
+  const handleEditTransfer = (tx) => {
+    setTransferInitialData({
+      defaultFromAccountId: '',
+      defaultToAccountId: '',
+      editTransaction: tx,
+    })
+    setTransferModalOpen(true)
+  }
+
+  // Selected account for overview transaction card
+  const [selectedAccountId, setSelectedAccountId] = useState('')
+
+  // Onboarding: completion is stored on the profile (server). Skipping only hides it for this session.
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false)
+
+  // Mandatory onboarding for signed-in users whose profile is not yet set up
+  const isMandatoryOnboarding = useMemo(() => {
+    if (onboardingDismissed) return false
+    if (!user) return false
+    return profile.onboardingCompleted === false
+  }, [user, profile.onboardingCompleted, onboardingDismissed])
+
+  const handleCloseOnboarding = () => {
+    setOnboardingDismissed(true)
+    setOnboardingModalOpen(false)
+  }
+
+  useEffect(() => {
+    if (isMandatoryOnboarding && !onboardingDismissed) {
+      setOnboardingModalOpen(true)
+    }
+  }, [isMandatoryOnboarding, onboardingDismissed])
+
+  // Synchronize default selected account
+  useEffect(() => {
+    if (accounts.length > 0 && !selectedAccountId) {
+      setSelectedAccountId(accounts[0].id)
+    }
+  }, [accounts, selectedAccountId])
+
+  // Global Keyboard Shortcuts (Only Ctrl+K or Cmd+K for Quick Add)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
@@ -177,116 +160,45 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault()
         setQuickAddModalOpen(true)
-      } else if (e.key === 'q' || e.key === 'Q' || e.key === '/') {
-        e.preventDefault()
-        setQuickAddModalOpen(true)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // Ledger Quick Form State
-
-  const [type, setType] = useState('expense')
-  const [title, setTitle] = useState('')
-  const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState(CATEGORIES.expense[0].label)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filterCategory, setFilterCategory] = useState('all')
-
-  const currencyCode = currentWorkspace?.base_currency || profile?.defaultCurrency || 'USD'
-  const numberFormat = profile?.numberFormat || 'intl'
-  const currencyInfo = CURRENCY_REGISTRY[currencyCode] || { symbol: currencyCode }
-
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((t) => {
-      const q = searchQuery.toLowerCase()
-      const matchesSearch =
-        (t.payee_name || t.title || '').toLowerCase().includes(q) ||
-        (t.notes || '').toLowerCase().includes(q)
-      const matchesCategory =
-        filterCategory === 'all' ||
-        t.category === filterCategory ||
-        t.lines?.some((l) => l.category?.name === filterCategory)
-      return matchesSearch && matchesCategory
-    })
-  }, [transactions, searchQuery, filterCategory])
-
-  const categoryBreakdown = useMemo(() => {
-    const expenses = transactions.filter((t) => t.type === 'expense')
-    const grouped = {}
-    expenses.forEach((t) => {
-      const catName = t.lines?.[0]?.category?.name || t.category || 'General'
-      const lineAmt = (t.lines || []).reduce(
-        (acc, l) => acc + parseFloat(l.base_amount || l.amount || '0'),
-        t.amount || 0
-      )
-      grouped[catName] = (grouped[catName] || 0) + lineAmt
-    })
-    return Object.entries(grouped).map(([cat, val]) => ({
-      name: cat,
-      amount: val,
-      percent: totalExpense > 0 ? Math.round((val / totalExpense) * 100) : 0,
-    }))
-  }, [transactions, totalExpense])
-
-  const handleAddTransaction = async (e) => {
-    e.preventDefault()
-    if (!title.trim() || !amount || Number(amount) <= 0) return
-
-    const targetAccount = accounts[0]
-    if (!targetAccount) {
-      alert('Please create at least one account first.')
-      return
-    }
-
-    await addTransaction({
-      type,
-      payeeName: title.trim(),
-      date: new Date().toISOString().split('T')[0],
-      status: 'cleared',
-      lines: [
-        {
-          accountId: targetAccount.id,
-          categoryId: null,
-          direction: type === 'income' ? 'in' : 'out',
-          amount: amount,
-          currency: targetAccount.currency || currencyCode,
-          baseAmount: amount,
-          description: title.trim(),
-        },
-      ],
-    })
-
-    setTitle('')
-    setAmount('')
-  }
 
 
-  const handleDelete = (id) => {
-    setTransactions(transactions.filter((t) => t.id !== id))
-  }
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const handleTabChange = (tabId) => {
-    if (tabId === 'settings') {
-      setSettingsModalOpen(true)
-    } else {
-      setActiveTab(tabId)
-    }
+    setActiveTab(tabId)
+    setMobileNavOpen(false)
   }
 
   return (
     <div className="app-shell">
-      {/* Visual Annotation Toolbar for AI Agents */}
-      <Agentation endpoint="http://localhost:4747" appName="Expense Tracking" />
+      {/* Visual Annotation Toolbar for AI Agents (development only) */}
+      {Agentation && (
+        <Suspense fallback={null}>
+          <Agentation
+            endpoint={import.meta.env.VITE_AGENTATION_ENDPOINT || 'http://localhost:4747'}
+            appName="Expense Tracking"
+          />
+        </Suspense>
+      )}
 
       {/* Persistent Left Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
         onSelectTab={handleTabChange}
-        onOpenSettings={() => setMembersWsModalOpen(true)}
+        onOpenSettings={() => setActiveTab('settings')}
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        isMobileOpen={mobileNavOpen}
+        onCloseMobile={() => setMobileNavOpen(false)}
+        onOpenCurrencyConverter={() => setCurrencyConverterModalOpen(true)}
+        onOpenImportExport={() => setImportExportModalOpen(true)}
+        onOpenAppearance={() => setAppearanceModalOpen(true)}
       />
 
       {/* Main App Container */}
@@ -294,264 +206,28 @@ export default function App() {
         <div className="app-container">
           {/* Top Header & Workspace Switcher */}
           <Navbar
+            onOpenMobileNav={() => setMobileNavOpen(true)}
             onOpenAuth={() => setAuthModalOpen(true)}
-            onOpenSettings={() => setSettingsModalOpen(true)}
+            onOpenSettings={() => setActiveTab('settings')}
             onOpenCreateWorkspace={() => setCreateWsModalOpen(true)}
-            onOpenWorkspaceMembers={() => setMembersWsModalOpen(true)}
+            onOpenWorkspaceMembers={() => setActiveTab('settings')}
             onOpenQuickAdd={() => setQuickAddModalOpen(true)}
+            onOpenTransfer={handleOpenTransfer}
             onOpenCurrencyConverter={() => setCurrencyConverterModalOpen(true)}
             onOpenImportExport={() => setImportExportModalOpen(true)}
             onOpenNotifications={() => setNotificationsModalOpen(true)}
+            onOpenOnboarding={() => setOnboardingModalOpen(true)}
+            onOpenAppearance={() => setAppearanceModalOpen(true)}
           />
 
 
-          {/* Overview Metrics Cards */}
-          <section className="stats-grid" aria-label="Financial Overview">
-            <StatCard
-              title="Net Balance"
-              icon="🏦"
-              variant="balance"
-              value={
-                <MoneyDisplay
-                  amount={balance}
-                  currencyCode={currencyCode}
-                  numberFormat={numberFormat}
-                />
-              }
-              meta={`Workspace: ${currentWorkspace?.name || 'Personal'} (${currencyCode})`}
-            />
-
-            <StatCard
-              title="Total Income"
-              icon="📈"
-              variant="income"
-              value={
-                <MoneyDisplay
-                  amount={totalIncome}
-                  currencyCode={currencyCode}
-                  numberFormat={numberFormat}
-                  type="income"
-                  showSign
-                />
-              }
-              meta={`${transactions.filter((t) => t.type === 'income').length} records booked`}
-            />
-
-            <StatCard
-              title="Total Expenses"
-              icon="📉"
-              variant="expense"
-              value={
-                <MoneyDisplay
-                  amount={totalExpense}
-                  currencyCode={currencyCode}
-                  numberFormat={numberFormat}
-                  type="expense"
-                  showSign
-                />
-              }
-              meta={`${transactions.filter((t) => t.type === 'expense').length} records booked`}
-            />
-
-            <StatCard
-              title="Savings Rate"
-              icon="🎯"
-              variant="default"
-              value={`${savingsRate}%`}
-              meta={savingsRate >= 20 ? 'Optimal savings buffer' : 'Consider reviewing budget'}
-            />
-          </section>
-
           {/* View Routing Based on Active Tab */}
           {activeTab === 'overview' && (
-            <div className="dashboard-layout">
-              {/* Left Column: New Transaction Form & Allocation */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-                <section className="panel" aria-label="Add New Transaction">
-                  <h2 className="panel-title">
-                    <span>⚡</span> Add Transaction
-                  </h2>
-
-                  <form onSubmit={handleAddTransaction}>
-                    <div className="type-selector">
-                      <button
-                        type="button"
-                        className={`type-btn expense ${type === 'expense' ? 'active' : ''}`}
-                        onClick={() => {
-                          setType('expense')
-                          setCategory(CATEGORIES.expense[0].label)
-                        }}
-                      >
-                        📉 Expense
-                      </button>
-                      <button
-                        type="button"
-                        className={`type-btn income ${type === 'income' ? 'active' : ''}`}
-                        onClick={() => {
-                          setType('income')
-                          setCategory(CATEGORIES.income[0].label)
-                        }}
-                      >
-                        📈 Income
-                      </button>
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="tx-title">
-                        Title / Merchant
-                      </label>
-                      <input
-                        id="tx-title"
-                        className="input-field"
-                        placeholder="e.g. AWS Hosting, Groceries, Retainer"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <MoneyInput
-                        id="tx-amount"
-                        label={`Amount (${currencyInfo.symbol})`}
-                        value={amount}
-                        onChange={setAmount}
-                        currencyCode={currencyCode}
-                        placeholder="0.00"
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="tx-category">
-                        Category
-                      </label>
-                      <select
-                        id="tx-category"
-                        className="select-field"
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                      >
-                        {CATEGORIES[type].map((c) => (
-                          <option key={c.label} value={c.label}>
-                            {c.icon} {c.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <button type="submit" className="submit-btn primary-glow">
-                      Add {type === 'expense' ? 'Expense' : 'Income'}
-                    </button>
-                  </form>
-                </section>
-
-                {/* Expense Category Breakdown */}
-                {categoryBreakdown.length > 0 && (
-                  <section className="panel" aria-label="Expense Breakdown">
-                    <h2 className="panel-title">
-                      <span>📊</span> Expense Distribution
-                    </h2>
-                    <div className="category-bars">
-                      {categoryBreakdown.map((item) => (
-                        <div key={item.name} className="cat-bar-item">
-                          <div className="cat-bar-header">
-                            <span>{item.name}</span>
-                            <span>
-                              <MoneyDisplay
-                                amount={item.amount}
-                                currencyCode={currencyCode}
-                                numberFormat={numberFormat}
-                              />{' '}
-                              ({item.percent}%)
-                            </span>
-                          </div>
-                          <div className="cat-bar-track">
-                            <div
-                              className="cat-bar-fill"
-                              style={{
-                                width: `${item.percent}%`,
-                                background: 'var(--accent-gradient)',
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                )}
-              </div>
-
-              {/* Right Column: Transaction History */}
-              <section className="panel" aria-label="Transaction History">
-                <h2 className="panel-title">
-                  <span>🧾</span> Recent Activity
-                </h2>
-
-                <div className="filter-bar">
-                  <input
-                    type="text"
-                    className="input-field filter-input"
-                    placeholder="Search transactions..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  <select
-                    className="select-field filter-select"
-                    value={filterCategory}
-                    onChange={(e) => setFilterCategory(e.target.value)}
-                  >
-                    <option value="all">All Categories</option>
-                    {[...CATEGORIES.expense, ...CATEGORIES.income].map((cat) => (
-                      <option key={cat.label} value={cat.label}>
-                        {cat.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="tx-list">
-                  {filteredTransactions.length === 0 ? (
-                    <div className="empty-state">
-                      <p>No matching transactions found.</p>
-                    </div>
-                  ) : (
-                    filteredTransactions.map((tx) => (
-                      <div key={tx.id} className="tx-item">
-                        <div className="tx-left">
-                          <div className="tx-category-icon">{tx.icon}</div>
-                          <div>
-                            <div className="tx-title">{tx.title}</div>
-                            <div className="tx-sub">
-                              {tx.category} • {tx.date}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="tx-right">
-                          <MoneyDisplay
-                            amount={tx.amount}
-                            currencyCode={currencyCode}
-                            numberFormat={numberFormat}
-                            type={tx.type}
-                            showSign
-                            className="tx-amount"
-                          />
-                          <button
-                            type="button"
-                            className="tx-delete-btn"
-                            onClick={() => handleDelete(tx.id)}
-                            title="Delete record"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </section>
-            </div>
+            <DashboardView
+              onNavigateTab={handleTabChange}
+              onOpenOnboarding={() => setOnboardingModalOpen(true)}
+              onOpenTransfer={handleOpenTransfer}
+            />
           )}
 
           {activeTab === 'transactions' && (
@@ -560,6 +236,8 @@ export default function App() {
                 setReceiptDraftData(null);
                 setCreateTxModalOpen(true);
               }}
+              onOpenTransfer={handleOpenTransfer}
+              onEditTransfer={handleEditTransfer}
               onOpenReconcile={() => setReconcileModalOpen(true)}
               onOpenRules={() => setRulesModalOpen(true)}
               onOpenReceiptScanner={(txId) => {
@@ -573,6 +251,8 @@ export default function App() {
           {activeTab === 'accounts' && (
             <AccountsView
               onOpenCreateAccount={() => setCreateAccountModalOpen(true)}
+              onOpenTransfer={handleOpenTransfer}
+              onEditTransfer={handleEditTransfer}
             />
           )}
 
@@ -631,6 +311,10 @@ export default function App() {
           {activeTab === 'reports' && (
             <ReportsView />
           )}
+
+          {activeTab === 'settings' && (
+            <PreferencesView />
+          )}
         </div>
       </div>
 
@@ -639,6 +323,7 @@ export default function App() {
         activeTab={activeTab}
         onSelectTab={handleTabChange}
         onOpenQuickAdd={() => setQuickAddModalOpen(true)}
+        onOpenMore={() => setMobileNavOpen(true)}
       />
 
       {/* Auth Modal */}
@@ -651,6 +336,7 @@ export default function App() {
       <ProfileSettingsModal
         isOpen={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
+        onOpenOnboarding={() => setOnboardingModalOpen(true)}
       />
 
       {/* Create Workspace Modal */}
@@ -703,6 +389,19 @@ export default function App() {
       <QuickAddModal
         isOpen={quickAddModalOpen}
         onClose={() => setQuickAddModalOpen(false)}
+        onOpenTransfer={handleOpenTransfer}
+      />
+
+      {/* Dedicated Transfer Funds Modal */}
+      <TransferModal
+        isOpen={transferModalOpen}
+        onClose={() => {
+          setTransferModalOpen(false)
+          setTransferInitialData(null)
+        }}
+        defaultFromAccountId={transferInitialData?.defaultFromAccountId}
+        defaultToAccountId={transferInitialData?.defaultToAccountId}
+        editTransaction={transferInitialData?.editTransaction}
       />
 
       {/* Statement Reconciliation Modal */}
@@ -825,6 +524,15 @@ export default function App() {
       <NotificationCenterModal
         isOpen={notificationsModalOpen}
         onClose={() => setNotificationsModalOpen(false)}
+      />
+
+      <AppearanceModal isOpen={appearanceModalOpen} onClose={() => setAppearanceModalOpen(false)} />
+
+      {/* Mandatory Onboarding & Account Balances Setup Wizard */}
+      <OnboardingModal
+        isOpen={onboardingModalOpen}
+        isMandatory={isMandatoryOnboarding}
+        onClose={handleCloseOnboarding}
       />
     </div>
   )

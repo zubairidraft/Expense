@@ -12,32 +12,50 @@ import Decimal from 'decimal.js';
 export function computeNextDueDate(
   currentDateStr: string,
   frequency: RecurringFrequency,
-  interval = 1
+  interval = 1,
+  anchorDay?: number
 ): string {
   const date = new Date(currentDateStr + 'T00:00:00Z');
+  const step = Math.max(1, Math.floor(interval || 1));
 
+  // Month-based schedules clamp to the last day of shorter months
+  // ("monthly on the 31st" -> Feb 28/29 -> Mar 31), never overflow into the next month.
+  const addMonths = (months: number) => {
+    const day = anchorDay && anchorDay > 0 ? anchorDay : date.getUTCDate();
+    const y = date.getUTCFullYear();
+    const m = date.getUTCMonth() + months;
+    const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    return new Date(Date.UTC(y, m, Math.min(day, lastDay)));
+  };
+
+  let next: Date;
   switch (frequency) {
     case 'daily':
-      date.setUTCDate(date.getUTCDate() + interval);
+      next = new Date(date.getTime());
+      next.setUTCDate(next.getUTCDate() + step);
       break;
     case 'weekly':
-      date.setUTCDate(date.getUTCDate() + 7 * interval);
+      next = new Date(date.getTime());
+      next.setUTCDate(next.getUTCDate() + 7 * step);
       break;
     case 'biweekly':
-      date.setUTCDate(date.getUTCDate() + 14 * interval);
+      next = new Date(date.getTime());
+      next.setUTCDate(next.getUTCDate() + 14 * step);
       break;
     case 'monthly':
-      date.setUTCMonth(date.getUTCMonth() + interval);
+      next = addMonths(step);
       break;
     case 'quarterly':
-      date.setUTCMonth(date.getUTCMonth() + 3 * interval);
+      next = addMonths(3 * step);
       break;
     case 'yearly':
-      date.setUTCFullYear(date.getUTCFullYear() + interval);
+      next = addMonths(12 * step);
       break;
+    default:
+      next = addMonths(step);
   }
 
-  return date.toISOString().split('T')[0];
+  return next.toISOString().split('T')[0];
 }
 
 /**

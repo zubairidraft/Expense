@@ -73,11 +73,11 @@ export function GoalProvider({ children }) {
         .order('created_at', { ascending: false });
 
       if (gErr) throw gErr;
-      setGoals(data && data.length > 0 ? data : DEFAULT_GUEST_GOALS);
+      setGoals(data || []);
     } catch (err) {
       console.warn('[GoalContext] Fetch error:', err.message);
       setError(err.message);
-      setGoals(DEFAULT_GUEST_GOALS);
+      setGoals([]);
     } finally {
       setLoading(false);
     }
@@ -230,22 +230,31 @@ export function GoalProvider({ children }) {
 
     try {
       // Record allocation entry
-      await supabase.from('goal_allocations').insert({
-        goal_id: goalId,
-        workspace_id: currentWorkspace.id,
-        amount: String(allocationAmount),
-        currency: goal.currency,
-        notes,
-      });
+      const { data: alloc, error: allocErr } = await supabase
+        .from('goal_allocations')
+        .insert({
+          goal_id: goalId,
+          workspace_id: currentWorkspace.id,
+          amount: String(allocationAmount),
+          currency: goal.currency,
+          notes,
+        })
+        .select('id')
+        .single();
+      if (allocErr) throw allocErr;
 
-      // Update goal current amount
-      await supabase
+      // Update goal current amount; roll back the allocation if this fails
+      const { error: updErr } = await supabase
         .from('goals')
         .update({
           current_amount: newCurrent,
           status: isComplete ? 'completed' : goal.status,
         })
         .eq('id', goalId);
+      if (updErr) {
+        await supabase.from('goal_allocations').delete().eq('id', alloc.id);
+        throw updErr;
+      }
 
       await fetchGoals();
       return { error: null };

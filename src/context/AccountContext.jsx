@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo } 
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useWorkspace } from './WorkspaceContext';
+import { dec, sumMoney, toNum, computeAccountBalance } from '../lib/money';
+import { todayISO } from '../lib/dates';
 
 const AccountContext = createContext(null);
 
@@ -50,16 +52,89 @@ const DEFAULT_GUEST_ACCOUNTS = [
   },
 ];
 
+const getStoredGuestAccounts = () => {
+  try {
+    const raw = localStorage.getItem('expense_pro_accounts');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn('[AccountContext] Error reading stored accounts:', e);
+  }
+  saveGuestAccounts(DEFAULT_GUEST_ACCOUNTS);
+  return DEFAULT_GUEST_ACCOUNTS;
+};
+
+const saveGuestAccounts = (accList) => {
+  try {
+    localStorage.setItem('expense_pro_accounts', JSON.stringify(accList));
+  } catch (e) {
+    console.warn('[AccountContext] Error saving accounts to localStorage:', e);
+  }
+};
+
+const getStoredGuestShares = () => {
+  try {
+    const raw = localStorage.getItem('expense_pro_account_shares');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.warn('[AccountContext] Error reading stored shares:', e);
+  }
+  return [];
+};
+
+const saveGuestShares = (shares) => {
+  try {
+    localStorage.setItem('expense_pro_account_shares', JSON.stringify(shares));
+  } catch (e) {
+    console.warn('[AccountContext] Error saving shares:', e);
+  }
+};
+
 export function AccountProvider({ children }) {
   const { user } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  const [accounts, setAccounts] = useState([]);
+  const { currentWorkspace, workspaces = [] } = useWorkspace();
+  const [accounts, setAccounts] = useState(getStoredGuestAccounts);
+  const [accountShares, setAccountShares] = useState(getStoredGuestShares);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [guestTxVersion, setGuestTxVersion] = useState(0);
+
+  const isGuestMode = !user || !currentWorkspace?.id || currentWorkspace.id === 'guest-space';
 
   const fetchAccounts = useCallback(async () => {
-    if (!currentWorkspace?.id || !user) {
-      setAccounts(DEFAULT_GUEST_ACCOUNTS);
+    if (!currentWorkspace?.id || !user || currentWorkspace.id === 'guest-space') {
+      const allGuestAccs = getStoredGuestAccounts();
+      const allShares = getStoredGuestShares();
+      setAccountShares(allShares);
+
+      // In guest mode: active accounts for this workspace = owned + shared in
+      const currentWsId = currentWorkspace?.id || 'guest-space';
+      const activeSharesIn = allShares.filter((s) => s.workspace_id === currentWsId && s.status === 'active');
+      const sharedInAccIds = new Set(activeSharesIn.map((s) => s.account_id));
+
+      const scopedAccounts = allGuestAccs
+        .filter((a) => a.workspace_id === currentWsId || sharedInAccIds.has(a.id))
+        .map((a) => {
+          const share = activeSharesIn.find((s) => s.account_id === a.id);
+          const isSharedIn = !!share;
+          const homeWs = workspaces.find((w) => w.id === a.workspace_id);
+          return {
+            ...a,
+            is_shared: isSharedIn,
+            can_post: isSharedIn ? share.can_post : true,
+            detail_level: isSharedIn ? share.detail_level : 'full',
+            count_in_net_worth: isSharedIn ? share.count_in_net_worth : true,
+            home_workspace_name: homeWs?.name || 'Home Workspace',
+          };
+        });
+
+      setAccounts(scopedAccounts);
+      setGuestTxVersion((v) => v + 1);
       setLoading(false);
       return;
     }
@@ -68,33 +143,165 @@ export function AccountProvider({ children }) {
       setLoading(true);
       setError(null);
 
-      const { data, error: accErr } = await supabase
-        .from('accounts')
-        .select('*')
-        .eq('workspace_id', currentWorkspace.id)
-        .is('archived_at', null)
-        .order('created_at', { ascending: true });
+      // Fetch unified balances view and shares overview in parallel
+      const [{ data: balRows, error: balErr }, { data: shareRows, error: shareErr }] = await Promise.all([
+        supabase
+          .from('v_account_balances_current')
+          .select('*')
+          .eq('workspace_id', currentWorkspace.id),
+        supabase
+          .from('v_account_shares_overview')
+          .select('*'),
+      ]);
 
-      if (accErr) throw accErr;
+      if (balErr) throw balErr;
+      if (shareErr) console.warn('[AccountContext] Share overview error:', shareErr.message);
 
-      if (data && data.length > 0) {
-        setAccounts(data);
-      } else {
-        // If workspace has no accounts yet, provide template default
-        setAccounts([]);
-      }
+      setAccountShares(shareRows || []);
+
+      const sharesByAccount = new Map();
+      (shareRows || []).forEach((s) => {
+        if (!sharesByAccount.has(s.account_id)) sharesByAccount.set(s.account_id, []);
+        sharesByAccount.get(s.account_id).push(s);
+      });
+
+      const formatted = (balRows || []).map((row) => {
+        const sharesOut = (sharesByAccount.get(row.account_id) || []).filter((s) => s.status === 'active');
+        return {
+          id: row.account_id,
+          workspace_id: row.workspace_id,
+          name: row.account_name,
+          type: row.account_type,
+          nature: row.account_nature,
+          currency: row.currency,
+          opening_balance: row.opening_balance,
+          icon: row.icon,
+          color: row.color,
+          visibility: row.visibility,
+          archived_at: row.archived_at,
+          balance: String(row.current_balance ?? '0'),
+          base_balance: row.current_base_balance ? String(row.current_base_balance) : null,
+          is_shared: !!row.is_shared,
+          share_relation: row.share_relation,
+          can_post: row.can_post !== false,
+          count_in_net_worth: row.count_in_net_worth === true,
+          shares_out: sharesOut,
+        };
+      });
+
+      setAccounts(formatted);
     } catch (err) {
       console.warn('[AccountContext] Error fetching accounts:', err.message);
       setError(err.message);
-      setAccounts(DEFAULT_GUEST_ACCOUNTS);
+      setAccounts([]);
     } finally {
       setLoading(false);
     }
-  }, [currentWorkspace?.id, user]);
+  }, [currentWorkspace?.id, user, workspaces]);
 
   useEffect(() => {
     fetchAccounts();
   }, [fetchAccounts]);
+
+  const shareAccount = async ({
+    accountId,
+    targetWorkspaceId,
+    canPost = true,
+    detailLevel = 'summary',
+    countInNetWorth = false,
+  }) => {
+    if (isGuestMode) {
+      const allShares = getStoredGuestShares();
+      const existingIdx = allShares.findIndex(
+        (s) => s.account_id === accountId && s.workspace_id === targetWorkspaceId
+      );
+      const newShare = {
+        id: `share-${Date.now()}`,
+        account_id: accountId,
+        workspace_id: targetWorkspaceId,
+        can_post: canPost,
+        detail_level: detailLevel,
+        count_in_net_worth: countInNetWorth,
+        status: 'active',
+        created_at: new Date().toISOString(),
+      };
+
+      let next;
+      if (existingIdx >= 0) {
+        next = allShares.map((s, idx) => (idx === existingIdx ? { ...s, ...newShare, id: s.id } : s));
+      } else {
+        next = [...allShares, newShare];
+      }
+      saveGuestShares(next);
+      setAccountShares(next);
+      await fetchAccounts();
+      return { error: null };
+    }
+
+    try {
+      const { data, error: rpcErr } = await supabase.rpc('share_account', {
+        p_account_id: accountId,
+        p_target_workspace_id: targetWorkspaceId,
+        p_can_post: canPost,
+        p_detail_level: detailLevel,
+        p_count_in_net_worth: countInNetWorth,
+      });
+
+      if (rpcErr) throw rpcErr;
+      await fetchAccounts();
+      return { data, error: null };
+    } catch (err) {
+      console.error('[AccountContext] shareAccount error:', err);
+      return { data: null, error: err };
+    }
+  };
+
+  const revokeAccountShare = async (accountId, targetWorkspaceId) => {
+    if (isGuestMode) {
+      const allShares = getStoredGuestShares();
+      const next = allShares.map((s) =>
+        s.account_id === accountId && s.workspace_id === targetWorkspaceId
+          ? { ...s, status: 'revoked', can_post: false, revoked_at: new Date().toISOString() }
+          : s
+      );
+      saveGuestShares(next);
+      setAccountShares(next);
+      await fetchAccounts();
+      return { error: null };
+    }
+
+    try {
+      const { error: rpcErr } = await supabase.rpc('revoke_account_share', {
+        p_account_id: accountId,
+        p_target_workspace_id: targetWorkspaceId,
+      });
+
+      if (rpcErr) throw rpcErr;
+      await fetchAccounts();
+      return { error: null };
+    } catch (err) {
+      console.error('[AccountContext] revokeAccountShare error:', err);
+      return { error: err };
+    }
+  };
+
+  const fetchAccountShares = useCallback(async (accountId) => {
+    if (isGuestMode) {
+      const all = getStoredGuestShares();
+      return all.filter((s) => s.account_id === accountId);
+    }
+    try {
+      const { data, error: err } = await supabase
+        .from('v_account_shares_overview')
+        .select('*')
+        .eq('account_id', accountId);
+      if (err) throw err;
+      return data || [];
+    } catch (err) {
+      console.warn('[AccountContext] fetchAccountShares error:', err);
+      return [];
+    }
+  }, [isGuestMode]);
 
   const createAccount = async ({
     name,
@@ -102,13 +309,13 @@ export function AccountProvider({ children }) {
     nature,
     currency = currentWorkspace?.base_currency || 'USD',
     openingBalance = '0.00',
-    openingDate = new Date().toISOString().split('T')[0],
+    openingDate = todayISO(),
     creditLimit = null,
     visibility = 'shared',
     icon = '🏦',
     color = '#6366f1',
   }) => {
-    if (!user || currentWorkspace?.id === 'guest-space') {
+    if (isGuestMode) {
       const newAcc = {
         id: `acc-${Date.now()}`,
         workspace_id: currentWorkspace?.id || 'guest-space',
@@ -123,7 +330,10 @@ export function AccountProvider({ children }) {
         icon,
         color,
       };
-      setAccounts((prev) => [...prev, newAcc]);
+      const all = getStoredGuestAccounts();
+      const next = [...all, newAcc];
+      saveGuestAccounts(next);
+      await fetchAccounts();
       return { data: newAcc, error: null };
     }
 
@@ -158,11 +368,69 @@ export function AccountProvider({ children }) {
     }
   };
 
+  const createMultipleAccounts = async (accountList) => {
+    if (!accountList || accountList.length === 0) return { data: [], error: null };
+
+    if (isGuestMode) {
+      const created = accountList.map((acc, idx) => ({
+        id: `acc-${Date.now()}-${idx}`,
+        workspace_id: currentWorkspace?.id || 'guest-space',
+        name: acc.name,
+        type: acc.type || 'bank',
+        nature: acc.nature || 'asset',
+        currency: acc.currency || currentWorkspace?.base_currency || 'USD',
+        opening_balance: acc.openingBalance || '0.00',
+        opening_date: acc.openingDate || todayISO(),
+        credit_limit: acc.creditLimit || null,
+        visibility: 'shared',
+        icon: acc.icon || '🏦',
+        color: acc.color || '#6366f1',
+      }));
+      const all = getStoredGuestAccounts();
+      const next = [...all, ...created];
+      saveGuestAccounts(next);
+      await fetchAccounts();
+      return { data: created, error: null };
+    }
+
+    try {
+      setError(null);
+      const rows = accountList.map((acc) => ({
+        workspace_id: currentWorkspace.id,
+        name: acc.name,
+        type: acc.type || 'bank',
+        nature: acc.nature || 'asset',
+        currency: acc.currency || currentWorkspace?.base_currency || 'USD',
+        opening_balance: acc.openingBalance || '0.00',
+        opening_date: acc.openingDate || todayISO(),
+        credit_limit: acc.creditLimit || null,
+        visibility: 'shared',
+        icon: acc.icon || '🏦',
+        color: acc.color || '#6366f1',
+      }));
+
+      const { data, error: insertErr } = await supabase
+        .from('accounts')
+        .insert(rows)
+        .select();
+
+      if (insertErr) throw insertErr;
+
+      await fetchAccounts();
+      return { data, error: null };
+    } catch (err) {
+      console.error('[AccountContext] Create multiple accounts error:', err);
+      setError(err.message);
+      return { data: null, error: err };
+    }
+  };
+
   const updateAccount = async (accountId, updates) => {
-    if (!user || currentWorkspace?.id === 'guest-space') {
-      setAccounts((prev) =>
-        prev.map((a) => (a.id === accountId ? { ...a, ...updates } : a))
-      );
+    if (isGuestMode) {
+      const all = getStoredGuestAccounts();
+      const next = all.map((a) => (a.id === accountId ? { ...a, ...updates } : a));
+      saveGuestAccounts(next);
+      await fetchAccounts();
       return { error: null };
     }
 
@@ -183,8 +451,11 @@ export function AccountProvider({ children }) {
   };
 
   const archiveAccount = async (accountId) => {
-    if (!user || currentWorkspace?.id === 'guest-space') {
-      setAccounts((prev) => prev.filter((a) => a.id !== accountId));
+    if (isGuestMode) {
+      const all = getStoredGuestAccounts();
+      const next = all.filter((a) => a.id !== accountId);
+      saveGuestAccounts(next);
+      await fetchAccounts();
       return { error: null };
     }
 
@@ -204,33 +475,57 @@ export function AccountProvider({ children }) {
     }
   };
 
-  // Mathematical aggregates
-  const totalAssets = useMemo(() => {
-    return accounts
-      .filter((a) => a.nature === 'asset')
-      .reduce((sum, curr) => sum + parseFloat(curr.opening_balance || '0'), 0);
-  }, [accounts]);
+  // Guest mode: derive balances from the locally stored ledger (sums all transactions on the account across workspaces)
+  const accountsWithBalances = useMemo(() => {
+    if (!isGuestMode) return accounts;
+    let guestTx = [];
+    try {
+      const raw = localStorage.getItem('expense_pro_transactions');
+      guestTx = raw ? JSON.parse(raw) : [];
+    } catch {
+      guestTx = [];
+    }
+    return accounts.map((a) => {
+      const bal = computeAccountBalance(a, Array.isArray(guestTx) ? guestTx : []).toFixed(4);
+      return { ...a, balance: bal, base_balance: bal };
+    });
+  }, [accounts, isGuestMode, guestTxVersion]);
 
-  const totalLiabilities = useMemo(() => {
-    return accounts
-      .filter((a) => a.nature === 'liability')
-      .reduce((sum, curr) => sum + parseFloat(curr.opening_balance || '0'), 0);
-  }, [accounts]);
+  // Aggregates in workspace base currency (decimal-safe)
+  const baseValue = (a) => (a.base_balance !== null && a.base_balance !== undefined ? a.base_balance : a.balance);
 
-  const netWorth = totalAssets - totalLiabilities;
+  // Net worth: only count owned accounts OR shared accounts with count_in_net_worth = true (Decision 2)
+  const eligibleForNetWorth = (a) => !a.is_shared || a.count_in_net_worth === true;
+
+  const totalAssets = useMemo(
+    () => toNum(sumMoney(accountsWithBalances.filter((a) => a.nature === 'asset' && eligibleForNetWorth(a)).map(baseValue))),
+    [accountsWithBalances]
+  );
+
+  const totalLiabilities = useMemo(
+    () => toNum(sumMoney(accountsWithBalances.filter((a) => a.nature === 'liability' && eligibleForNetWorth(a)).map(baseValue))),
+    [accountsWithBalances]
+  );
+
+  const netWorth = toNum(dec(totalAssets).minus(dec(totalLiabilities)));
 
   return (
     <AccountContext.Provider
       value={{
-        accounts,
+        accounts: accountsWithBalances,
+        accountShares,
         loading,
         error,
         totalAssets,
         totalLiabilities,
         netWorth,
         createAccount,
+        createMultipleAccounts,
         updateAccount,
         archiveAccount,
+        shareAccount,
+        revokeAccountShare,
+        fetchAccountShares,
         refreshAccounts: fetchAccounts,
       }}
     >

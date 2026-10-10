@@ -123,7 +123,7 @@ export default function BudgetsView({
   return (
     <div className="accounts-view" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Primary Section Switcher (Envelopes vs Goals) */}
-      <div style={{ display: 'flex', gap: '0.75rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '0.75rem' }}>
+      <div style={{ display: 'flex', gap: '0.75rem', borderBottom: '1px solid rgba(var(--md-on-surface-rgb), 0.08)', paddingBottom: '0.75rem' }}>
         <button
           type="button"
           onClick={() => setMainTab('envelopes')}
@@ -134,8 +134,8 @@ export default function BudgetsView({
             borderRadius: '10px',
             border: 'none',
             cursor: 'pointer',
-            background: mainTab === 'envelopes' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-            color: mainTab === 'envelopes' ? '#818cf8' : 'var(--text-muted, #94a3b8)',
+            background: mainTab === 'envelopes' ? 'rgba(var(--md-primary-rgb), 0.2)' : 'transparent',
+            color: mainTab === 'envelopes' ? 'var(--md-primary)' : 'var(--text-muted, var(--md-on-surface-variant))',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
@@ -154,8 +154,8 @@ export default function BudgetsView({
             borderRadius: '10px',
             border: 'none',
             cursor: 'pointer',
-            background: mainTab === 'goals' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-            color: mainTab === 'goals' ? '#818cf8' : 'var(--text-muted, #94a3b8)',
+            background: mainTab === 'goals' ? 'rgba(var(--md-primary-rgb), 0.2)' : 'transparent',
+            color: mainTab === 'goals' ? 'var(--md-primary)' : 'var(--text-muted, var(--md-on-surface-variant))',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
@@ -283,10 +283,10 @@ export default function BudgetsView({
                       gap: '1rem',
                       position: 'relative',
                       border: util.isExceeded
-                        ? '1px solid rgba(239, 68, 68, 0.4)'
+                        ? '1px solid rgba(var(--md-error-rgb), 0.4)'
                         : util.isWarning
-                        ? '1px solid rgba(245, 158, 11, 0.4)'
-                        : '1px solid rgba(255, 255, 255, 0.08)',
+                        ? '1px solid rgba(var(--md-warning-rgb), 0.4)'
+                        : '1px solid rgba(var(--md-on-surface-rgb), 0.08)',
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -296,7 +296,7 @@ export default function BudgetsView({
                             width: '42px',
                             height: '42px',
                             borderRadius: '10px',
-                            background: 'rgba(255, 255, 255, 0.05)',
+                            background: 'rgba(var(--md-on-surface-rgb), 0.05)',
                             border: `1px solid ${b.categoryColor}33`,
                             display: 'flex',
                             alignItems: 'center',
@@ -308,7 +308,7 @@ export default function BudgetsView({
                         </div>
 
                         <div>
-                          <strong style={{ fontSize: '1rem', color: '#f8fafc', display: 'block' }}>
+                          <strong style={{ fontSize: '1rem', color: 'var(--md-on-surface)', display: 'block' }}>
                             {b.categoryName}
                           </strong>
                           <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.15rem' }}>
@@ -316,7 +316,7 @@ export default function BudgetsView({
                               style={{
                                 fontSize: '0.7rem',
                                 color: 'var(--text-muted)',
-                                background: 'rgba(255, 255, 255, 0.04)',
+                                background: 'rgba(var(--md-on-surface-rgb), 0.04)',
                                 padding: '0.1rem 0.4rem',
                                 borderRadius: '4px',
                                 textTransform: 'capitalize',
@@ -328,8 +328,8 @@ export default function BudgetsView({
                               <span
                                 style={{
                                   fontSize: '0.7rem',
-                                  color: '#a5b4fc',
-                                  background: 'rgba(99, 102, 241, 0.15)',
+                                  color: 'var(--md-primary)',
+                                  background: 'rgba(var(--md-primary-rgb), 0.15)',
                                   padding: '0.1rem 0.4rem',
                                   borderRadius: '4px',
                                 }}
@@ -346,8 +346,8 @@ export default function BudgetsView({
                           <span
                             style={{
                               fontSize: '0.72rem',
-                              background: 'rgba(239, 68, 68, 0.2)',
-                              color: '#f87171',
+                              background: 'rgba(var(--md-error-rgb), 0.2)',
+                              color: 'var(--md-error)',
                               padding: '0.2rem 0.5rem',
                               borderRadius: '6px',
                               fontWeight: 700,
@@ -359,8 +359,8 @@ export default function BudgetsView({
                           <span
                             style={{
                               fontSize: '0.72rem',
-                              background: 'rgba(245, 158, 11, 0.2)',
-                              color: '#fbbf24',
+                              background: 'rgba(var(--md-warning-rgb), 0.2)',
+                              color: 'var(--md-warning)',
                               padding: '0.2rem 0.5rem',
                               borderRadius: '6px',
                               fontWeight: 700,
@@ -372,8 +372,8 @@ export default function BudgetsView({
                           <span
                             style={{
                               fontSize: '0.72rem',
-                              background: 'rgba(16, 185, 129, 0.2)',
-                              color: '#34d399',
+                              background: 'rgba(var(--md-success-rgb), 0.2)',
+                              color: 'var(--md-success)',
                               padding: '0.2rem 0.5rem',
                               borderRadius: '6px',
                               fontWeight: 700,
@@ -389,7 +389,7 @@ export default function BudgetsView({
                           style={{
                             background: 'none',
                             border: 'none',
-                            color: '#ef4444',
+                            color: 'var(--md-error)',
                             cursor: 'pointer',
                             padding: '0.2rem',
                           }}
@@ -402,7 +402,7 @@ export default function BudgetsView({
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc' }}>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--md-on-surface)' }}>
                           <MoneyDisplay amount={parseFloat(util.spentAmount)} currencyCode={util.currency} />
                         </span>
                         <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
@@ -414,7 +414,7 @@ export default function BudgetsView({
                         style={{
                           fontSize: '0.85rem',
                           fontWeight: 600,
-                          color: parseFloat(util.remainingAmount) < 0 ? '#ef4444' : '#34d399',
+                          color: parseFloat(util.remainingAmount) < 0 ? 'var(--md-error)' : 'var(--md-success)',
                         }}
                       >
                         {parseFloat(util.remainingAmount) < 0
@@ -427,7 +427,7 @@ export default function BudgetsView({
                       style={{
                         height: '10px',
                         borderRadius: '9999px',
-                        background: 'rgba(255, 255, 255, 0.08)',
+                        background: 'rgba(var(--md-on-surface-rgb), 0.08)',
                         overflow: 'hidden',
                         position: 'relative',
                       }}
@@ -532,8 +532,8 @@ export default function BudgetsView({
                       flexDirection: 'column',
                       gap: '1rem',
                       border: isComplete
-                        ? '1px solid rgba(16, 185, 129, 0.4)'
-                        : '1px solid rgba(255, 255, 255, 0.08)',
+                        ? '1px solid rgba(var(--md-success-rgb), 0.4)'
+                        : '1px solid rgba(var(--md-on-surface-rgb), 0.08)',
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -543,7 +543,7 @@ export default function BudgetsView({
                             width: '44px',
                             height: '44px',
                             borderRadius: '12px',
-                            background: isComplete ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                            background: isComplete ? 'rgba(var(--md-success-rgb), 0.15)' : 'rgba(var(--md-primary-rgb), 0.15)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -554,7 +554,7 @@ export default function BudgetsView({
                         </div>
 
                         <div>
-                          <strong style={{ fontSize: '1rem', color: '#f8fafc', display: 'block' }}>
+                          <strong style={{ fontSize: '1rem', color: 'var(--md-on-surface)', display: 'block' }}>
                             {g.name}
                           </strong>
                           <span
@@ -576,8 +576,8 @@ export default function BudgetsView({
                             fontSize: '0.72rem',
                             padding: '0.2rem 0.55rem',
                             borderRadius: '6px',
-                            background: isComplete ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)',
-                            color: isComplete ? '#34d399' : '#818cf8',
+                            background: isComplete ? 'rgba(var(--md-success-rgb), 0.2)' : 'rgba(var(--md-primary-rgb), 0.2)',
+                            color: isComplete ? 'var(--md-success)' : 'var(--md-primary)',
                             fontWeight: 700,
                           }}
                         >
@@ -590,7 +590,7 @@ export default function BudgetsView({
                           style={{
                             background: 'none',
                             border: 'none',
-                            color: '#ef4444',
+                            color: 'var(--md-error)',
                             cursor: 'pointer',
                             padding: '0.2rem',
                           }}
@@ -604,7 +604,7 @@ export default function BudgetsView({
                     {/* Numbers */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
-                        <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#f8fafc' }}>
+                        <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--md-on-surface)' }}>
                           <MoneyDisplay amount={parseFloat(progress.currentAmount)} currencyCode={g.currency || baseCurrency} />
                         </span>
                         <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
@@ -612,7 +612,7 @@ export default function BudgetsView({
                         </span>
                       </div>
 
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#38bdf8' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--md-info)' }}>
                         <MoneyDisplay amount={parseFloat(progress.remainingAmount)} currencyCode={g.currency || baseCurrency} /> left
                       </span>
                     </div>
@@ -622,7 +622,7 @@ export default function BudgetsView({
                       style={{
                         height: '10px',
                         borderRadius: '9999px',
-                        background: 'rgba(255, 255, 255, 0.08)',
+                        background: 'rgba(var(--md-on-surface-rgb), 0.08)',
                         overflow: 'hidden',
                       }}
                     >
@@ -630,7 +630,7 @@ export default function BudgetsView({
                         style={{
                           width: `${progress.percentage}%`,
                           height: '100%',
-                          background: isComplete ? '#10b981' : '#6366f1',
+                          background: isComplete ? 'var(--md-success)' : 'var(--md-primary)',
                           borderRadius: '9999px',
                           transition: 'width 0.4s ease',
                         }}
@@ -645,12 +645,12 @@ export default function BudgetsView({
                         alignItems: 'center',
                         marginTop: '0.25rem',
                         paddingTop: '0.75rem',
-                        borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                        borderTop: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
                       }}
                     >
                       <div>
                         {progress.monthlyContributionNeeded ? (
-                          <span style={{ fontSize: '0.78rem', color: '#f59e0b', fontWeight: 600 }}>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--md-warning)', fontWeight: 600 }}>
                             📈 ~${progress.monthlyContributionNeeded}/mo needed
                           </span>
                         ) : (

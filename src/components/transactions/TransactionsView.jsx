@@ -8,11 +8,14 @@ import TransactionDrawer from './TransactionDrawer';
 
 export default function TransactionsView({
   onOpenCreateTransaction,
+  onOpenTransfer,
+  onEditTransfer,
   onOpenReconcile,
   onOpenRules,
   onOpenReceiptScanner,
 }) {
-  const { transactions, totalIncome, totalExpense, deleteTransaction } = useTransactions();
+  const { transactions, totalIncome, totalExpense, deleteTransaction, restoreTransaction, error: ledgerError } = useTransactions();
+  const [lastDeleted, setLastDeleted] = useState(null);
   const { accounts } = useAccounts();
   const { currentWorkspace } = useWorkspace();
 
@@ -23,6 +26,7 @@ export default function TransactionsView({
   const [filterType, setFilterType] = useState('all'); // 'all' | 'expense' | 'income' | 'transfer' | 'refund'
   const [filterAccount, setFilterAccount] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'cleared' | 'pending' | 'reconciled'
+  const [filterOrigin, setFilterOrigin] = useState('all'); // 'all' | 'mine' | 'shared'
 
   // Selected Transaction for Drawer
   const [selectedTx, setSelectedTx] = useState(null);
@@ -30,6 +34,10 @@ export default function TransactionsView({
   // Filtered transactions
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
+      // Ownership filter
+      if (filterOrigin === 'mine' && t.is_foreign) return false;
+      if (filterOrigin === 'shared' && !t.is_foreign) return false;
+
       // Type match
       if (filterType !== 'all' && t.type !== filterType) return false;
 
@@ -64,12 +72,39 @@ export default function TransactionsView({
   const handleDelete = (e, tx) => {
     e.stopPropagation();
     if (window.confirm(`Delete transaction "${tx.payee_name || tx.type}" from ledger?`)) {
-      deleteTransaction(tx.id);
+      deleteTransaction(tx.id).then((res) => {
+        if (!res?.error) {
+          setLastDeleted(tx);
+          setTimeout(() => setLastDeleted((cur) => (cur?.id === tx.id ? null : cur)), 10000);
+        }
+      });
     }
+  };
+
+  const handleUndoDelete = async () => {
+    if (!lastDeleted) return;
+    await restoreTransaction(lastDeleted.id, lastDeleted);
+    setLastDeleted(null);
   };
 
   return (
     <div className="transactions-view-container">
+      {ledgerError && (
+        <div role="alert" className="modal-error-banner" style={{ marginBottom: '1rem' }}>
+          {ledgerError}
+        </div>
+      )}
+      {lastDeleted && (
+        <div
+          role="status"
+          style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem', fontSize: '0.88rem' }}
+        >
+          <span>Deleted “{lastDeleted.payee_name || lastDeleted.type}”.</span>
+          <button type="button" className="btn-secondary" onClick={handleUndoDelete} style={{ padding: '0.3rem 0.7rem' }}>
+            Undo
+          </button>
+        </div>
+      )}
       {/* Top Stat Summary Banner */}
       <section className="stats-grid" aria-label="Ledger Statistics">
         <StatCard
@@ -108,31 +143,54 @@ export default function TransactionsView({
       {/* Action Header & Filtering Toolbar */}
       <div className="accounts-action-bar" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div className="accounts-filter-group">
-            <button
-              className={`acc-filter-btn ${filterType === 'all' ? 'active' : ''}`}
-              onClick={() => setFilterType('all')}
-            >
-              All Types
-            </button>
-            <button
-              className={`acc-filter-btn ${filterType === 'expense' ? 'active' : ''}`}
-              onClick={() => setFilterType('expense')}
-            >
-              📉 Expenses
-            </button>
-            <button
-              className={`acc-filter-btn ${filterType === 'income' ? 'active' : ''}`}
-              onClick={() => setFilterType('income')}
-            >
-              📈 Income
-            </button>
-            <button
-              className={`acc-filter-btn ${filterType === 'transfer' ? 'active' : ''}`}
-              onClick={() => setFilterType('transfer')}
-            >
-              🔁 Transfers
-            </button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="accounts-filter-group">
+              <button
+                className={`acc-filter-btn ${filterOrigin === 'all' ? 'active' : ''}`}
+                onClick={() => setFilterOrigin('all')}
+              >
+                All ({transactions.length})
+              </button>
+              <button
+                className={`acc-filter-btn ${filterOrigin === 'mine' ? 'active' : ''}`}
+                onClick={() => setFilterOrigin('mine')}
+              >
+                This Workspace ({transactions.filter((t) => !t.is_foreign).length})
+              </button>
+              <button
+                className={`acc-filter-btn ${filterOrigin === 'shared' ? 'active' : ''}`}
+                onClick={() => setFilterOrigin('shared')}
+              >
+                Shared Activity ({transactions.filter((t) => t.is_foreign).length})
+              </button>
+            </div>
+
+            <div className="accounts-filter-group">
+              <button
+                className={`acc-filter-btn ${filterType === 'all' ? 'active' : ''}`}
+                onClick={() => setFilterType('all')}
+              >
+                All Types
+              </button>
+              <button
+                className={`acc-filter-btn ${filterType === 'expense' ? 'active' : ''}`}
+                onClick={() => setFilterType('expense')}
+              >
+                📉 Expenses
+              </button>
+              <button
+                className={`acc-filter-btn ${filterType === 'income' ? 'active' : ''}`}
+                onClick={() => setFilterType('income')}
+              >
+                📈 Income
+              </button>
+              <button
+                className={`acc-filter-btn ${filterType === 'transfer' ? 'active' : ''}`}
+                onClick={() => setFilterType('transfer')}
+              >
+                🔁 Transfers
+              </button>
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -169,6 +227,18 @@ export default function TransactionsView({
                 title="Bank statement reconciliation & balance lock"
               >
                 <span>🔒</span> Reconcile
+              </button>
+            )}
+
+            {onOpenTransfer && (
+              <button
+                type="button"
+                onClick={() => onOpenTransfer()}
+                className="secondary-btn"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 0.85rem' }}
+                title="Transfer money between accounts"
+              >
+                <span>⇄</span> Transfer
               </button>
             )}
 
@@ -261,6 +331,25 @@ export default function TransactionsView({
                       <div>
                         <div className="tx-title-row">
                           <span className="tx-title">{tx.payee_name || 'Unlabeled Payee'}</span>
+                          {tx.is_foreign && (
+                            <span
+                              className="share-badge foreign-tx-chip"
+                              title={`Recorded in ${tx.origin_workspace_name || 'other workspace'}. Read-only.`}
+                              style={{
+                                fontSize: '0.72rem',
+                                padding: '0.15rem 0.5rem',
+                                borderRadius: '9999px',
+                                background: 'rgba(245, 158, 11, 0.15)',
+                                color: '#d97706',
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                              }}
+                            >
+                              🔒 {tx.origin_workspace_name || 'Doosre workspace'} se
+                            </span>
+                          )}
                           <span className={`tx-status-pill ${tx.status}`}>
                             {tx.status === 'reconciled' ? '🔒' : tx.status === 'cleared' ? '✓' : '⏳'}
                           </span>
@@ -295,10 +384,15 @@ export default function TransactionsView({
                       <button
                         type="button"
                         className="tx-delete-btn"
-                        onClick={(e) => handleDelete(e, tx)}
-                        title="Delete record"
+                        disabled={tx.is_foreign}
+                        onClick={(e) => {
+                          if (tx.is_foreign) return;
+                          handleDelete(e, tx);
+                        }}
+                        title={tx.is_foreign ? `Sirf ${tx.origin_workspace_name || 'originating'} workspace se delete ho sakti hai` : "Delete record"}
+                        style={tx.is_foreign ? { opacity: 0.35, cursor: 'not-allowed' } : undefined}
                       >
-                        🗑️
+                        {tx.is_foreign ? '🔒' : '🗑️'}
                       </button>
                     </div>
                   </div>
@@ -315,6 +409,7 @@ export default function TransactionsView({
         isOpen={Boolean(selectedTx)}
         onClose={() => setSelectedTx(null)}
         onOpenAttachReceipt={onOpenReceiptScanner}
+        onEditTransfer={onEditTransfer}
       />
     </div>
   );

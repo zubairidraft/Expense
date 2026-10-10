@@ -26,19 +26,6 @@ export default function CreateSharedExpenseModal({ isOpen, onClose, onOpenAddCon
   // Custom values for exact/percent/shares: { [contactId]: value }
   const [customValues, setCustomValues] = useState({});
 
-  if (!isOpen) return null;
-
-  const toggleContact = (id) => {
-    setSelectedContacts((prev) =>
-      prev.includes(id) ? prev.filter((cId) => cId !== id) : [...prev, id]
-    );
-  };
-
-  const handleCustomValueChange = (contactId, val) => {
-    setCustomValues((prev) => ({ ...prev, [contactId]: val }));
-  };
-
-  // Compute calculated splits in real time
   const calculatedSplits = useMemo(() => {
     const total = parseFloat(totalAmount || 0);
     if (total <= 0 || !selectedContacts.length) return [];
@@ -75,6 +62,18 @@ export default function CreateSharedExpenseModal({ isOpen, onClose, onOpenAddCon
     }
     return [];
   }, [totalAmount, selectedContacts, splitMethod, customValues]);
+
+  if (!isOpen) return null;
+
+  const toggleContact = (id) => {
+    setSelectedContacts((prev) =>
+      prev.includes(id) ? prev.filter((cId) => cId !== id) : [...prev, id]
+    );
+  };
+
+  const handleCustomValueChange = (contactId, val) => {
+    setCustomValues((prev) => ({ ...prev, [contactId]: val }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -197,9 +196,9 @@ export default function CreateSharedExpenseModal({ isOpen, onClose, onOpenAddCon
                     borderRadius: '8px',
                     fontSize: '0.82rem',
                     textAlign: 'center',
-                    background: splitMethod === m.id ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                    borderColor: splitMethod === m.id ? '#6366f1' : 'transparent',
-                    color: splitMethod === m.id ? '#fff' : '#94a3b8',
+                    background: splitMethod === m.id ? 'rgba(var(--md-primary-rgb), 0.25)' : 'rgba(var(--md-on-surface-rgb), 0.04)',
+                    borderColor: splitMethod === m.id ? 'var(--md-primary)' : 'transparent',
+                    color: splitMethod === m.id ? 'var(--md-on-primary)' : 'var(--md-on-surface-variant)',
                   }}
                 >
                   {m.label}
@@ -219,7 +218,7 @@ export default function CreateSharedExpenseModal({ isOpen, onClose, onOpenAddCon
                   type="button"
                   onClick={onOpenAddContact}
                   className="btn-text"
-                  style={{ fontSize: '0.78rem', color: '#6366f1' }}
+                  style={{ fontSize: '0.78rem', color: 'var(--md-primary)' }}
                 >
                   + Add Contact
                 </button>
@@ -228,8 +227,8 @@ export default function CreateSharedExpenseModal({ isOpen, onClose, onOpenAddCon
 
             <div
               style={{
-                background: 'rgba(15, 23, 42, 0.6)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'rgba(var(--md-surface-rgb), 0.6)',
+                border: '1px solid rgba(var(--md-on-surface-rgb), 0.08)',
                 borderRadius: '8px',
                 padding: '0.75rem',
                 maxHeight: '190px',
@@ -240,7 +239,7 @@ export default function CreateSharedExpenseModal({ isOpen, onClose, onOpenAddCon
               }}
             >
               {contacts.length === 0 ? (
-                <div style={{ color: '#64748b', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>
+                <div style={{ color: 'var(--md-on-surface-variant)', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>
                   No contacts found. Click "+ Add Contact" above to get started.
                 </div>
               ) : (
@@ -257,7 +256,7 @@ export default function CreateSharedExpenseModal({ isOpen, onClose, onOpenAddCon
                         justifyContent: 'space-between',
                         padding: '0.4rem 0.6rem',
                         borderRadius: '6px',
-                        background: isSelected ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+                        background: isSelected ? 'rgba(var(--md-on-surface-rgb), 0.04)' : 'transparent',
                         opacity: isSelected ? 1 : 0.5,
                       }}
                     >
@@ -267,7 +266,7 @@ export default function CreateSharedExpenseModal({ isOpen, onClose, onOpenAddCon
                           checked={isSelected}
                           onChange={() => toggleContact(c.id)}
                         />
-                        <span style={{ fontSize: '0.88rem', fontWeight: 500, color: '#f8fafc' }}>{c.name}</span>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--md-on-surface)' }}>{c.name}</span>
                       </label>
 
                       {isSelected && (
@@ -303,7 +302,7 @@ export default function CreateSharedExpenseModal({ isOpen, onClose, onOpenAddCon
                             />
                           )}
 
-                          <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#10b981', minWidth: '60px', textAlign: 'right' }}>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--md-success)', minWidth: '60px', textAlign: 'right' }}>
                             ${splitResult?.shareAmount || '0.00'}
                           </span>
                         </div>

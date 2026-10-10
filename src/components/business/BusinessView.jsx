@@ -79,7 +79,7 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
       {/* Main Panel */}
       <section className="panel" style={{ marginTop: '1.5rem' }}>
         <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div className="tab-pill-switcher" style={{ display: 'flex', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.04)', padding: '0.3rem', borderRadius: '10px' }}>
+          <div className="tab-pill-switcher" style={{ display: 'flex', gap: '0.4rem', background: 'rgba(var(--md-on-surface-rgb), 0.04)', padding: '0.3rem', borderRadius: '10px' }}>
             <button
               type="button"
               className={`btn-pill ${activeTab === 'projects' ? 'active' : ''}`}
@@ -88,8 +88,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                 padding: '0.45rem 0.9rem',
                 borderRadius: '8px',
                 border: 'none',
-                background: activeTab === 'projects' ? 'var(--color-primary, #6366f1)' : 'transparent',
-                color: '#fff',
+                background: activeTab === 'projects' ? 'var(--color-primary, var(--md-primary))' : 'transparent',
+                color: 'var(--md-on-primary)',
                 fontSize: '0.85rem',
                 cursor: 'pointer',
                 fontWeight: 500,
@@ -105,8 +105,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                 padding: '0.45rem 0.9rem',
                 borderRadius: '8px',
                 border: 'none',
-                background: activeTab === 'cost_centers' ? 'var(--color-primary, #6366f1)' : 'transparent',
-                color: '#fff',
+                background: activeTab === 'cost_centers' ? 'var(--color-primary, var(--md-primary))' : 'transparent',
+                color: 'var(--md-on-primary)',
                 fontSize: '0.85rem',
                 cursor: 'pointer',
                 fontWeight: 500,
@@ -122,8 +122,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                 padding: '0.45rem 0.9rem',
                 borderRadius: '8px',
                 border: 'none',
-                background: activeTab === 'household' ? 'var(--color-primary, #6366f1)' : 'transparent',
-                color: '#fff',
+                background: activeTab === 'household' ? 'var(--color-primary, var(--md-primary))' : 'transparent',
+                color: 'var(--md-on-primary)',
                 fontSize: '0.85rem',
                 cursor: 'pointer',
                 fontWeight: 500,
@@ -139,8 +139,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                 padding: '0.45rem 0.9rem',
                 borderRadius: '8px',
                 border: 'none',
-                background: activeTab === 'tax_calculator' ? 'var(--color-primary, #6366f1)' : 'transparent',
-                color: '#fff',
+                background: activeTab === 'tax_calculator' ? 'var(--color-primary, var(--md-primary))' : 'transparent',
+                color: 'var(--md-on-primary)',
                 fontSize: '0.85rem',
                 cursor: 'pointer',
                 fontWeight: 500,
@@ -186,8 +186,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                   <div
                     key={proj.id}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      background: 'rgba(var(--md-on-surface-rgb), 0.03)',
+                      border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
                       borderRadius: '10px',
                       padding: '1.25rem',
                     }}
@@ -195,7 +195,7 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: '#f8fafc' }}>
+                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: 'var(--md-on-surface)' }}>
                             {proj.name}
                           </h4>
                           {proj.code && (
@@ -204,8 +204,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                                 fontSize: '0.75rem',
                                 padding: '0.15rem 0.5rem',
                                 borderRadius: '4px',
-                                background: 'rgba(99, 102, 241, 0.2)',
-                                color: '#a5b4fc',
+                                background: 'rgba(var(--md-primary-rgb), 0.2)',
+                                color: 'var(--md-primary)',
                                 fontWeight: 600,
                               }}
                             >
@@ -217,8 +217,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                               fontSize: '0.72rem',
                               padding: '0.1rem 0.45rem',
                               borderRadius: '4px',
-                              background: proj.status === 'completed' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(56, 189, 248, 0.2)',
-                              color: proj.status === 'completed' ? '#10b981' : '#38bdf8',
+                              background: proj.status === 'completed' ? 'rgba(var(--md-success-rgb), 0.2)' : 'rgba(var(--md-info-rgb), 0.2)',
+                              color: proj.status === 'completed' ? 'var(--md-success)' : 'var(--md-info)',
                               fontWeight: 600,
                               textTransform: 'uppercase',
                             }}
@@ -226,17 +226,17 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                             {proj.status}
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '0.3rem' }}>
-                          Client: <strong style={{ color: '#e2e8f0' }}>{proj.client?.name || 'Internal'}</strong>
+                        <div style={{ fontSize: '0.82rem', color: 'var(--md-on-surface-variant)', marginTop: '0.3rem' }}>
+                          Client: <strong style={{ color: 'var(--md-on-surface)' }}>{proj.client?.name || 'Internal'}</strong>
                           {proj.start_date && ` • Started: ${new Date(proj.start_date).toLocaleDateString()}`}
                         </div>
                       </div>
 
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc' }}>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--md-on-surface)' }}>
                           {proj.budget ? <MoneyDisplay amount={proj.budget} currencyCode={proj.currency || currencyCode} /> : 'No Limit'}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: isOverBudget ? '#ef4444' : '#94a3b8' }}>
+                        <div style={{ fontSize: '0.75rem', color: isOverBudget ? 'var(--md-error)' : 'var(--md-on-surface-variant)' }}>
                           {proj.budget ? `${burnPct}% budget burned` : 'Unlimited Budget'}
                         </div>
                       </div>
@@ -249,7 +249,7 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                           marginTop: '0.85rem',
                           height: '6px',
                           borderRadius: '999px',
-                          background: 'rgba(255, 255, 255, 0.08)',
+                          background: 'rgba(var(--md-on-surface-rgb), 0.08)',
                           overflow: 'hidden',
                         }}
                       >
@@ -258,7 +258,7 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                             height: '100%',
                             width: `${Math.min(100, burnPct)}%`,
                             borderRadius: '999px',
-                            background: isOverBudget ? '#ef4444' : burnPct > 80 ? '#f59e0b' : '#6366f1',
+                            background: isOverBudget ? 'var(--md-error)' : burnPct > 80 ? 'var(--md-warning)' : 'var(--md-primary)',
                           }}
                         />
                       </div>
@@ -269,33 +269,33 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                       style={{
                         marginTop: '1rem',
                         paddingTop: '0.75rem',
-                        borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                        borderTop: '1px solid rgba(var(--md-on-surface-rgb), 0.05)',
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
                         gap: '0.75rem',
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Revenue</div>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#10b981' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--md-on-surface-variant)' }}>Revenue</div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--md-success)' }}>
                           ${summary?.totalRevenue || '0.00'}
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Total Expenses</div>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#ef4444' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--md-on-surface-variant)' }}>Total Expenses</div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--md-error)' }}>
                           ${summary?.totalExpense || '0.00'}
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Billable Cost</div>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#f59e0b' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--md-on-surface-variant)' }}>Billable Cost</div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--md-warning)' }}>
                           ${summary?.totalBillableExpense || '0.00'}
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Net Margin</div>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 700, color: parseFloat(summary?.netProfit || 0) >= 0 ? '#10b981' : '#ef4444' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--md-on-surface-variant)' }}>Net Margin</div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 700, color: parseFloat(summary?.netProfit || 0) >= 0 ? 'var(--md-success)' : 'var(--md-error)' }}>
                           ${summary?.netProfit || '0.00'}
                         </div>
                       </div>
@@ -324,8 +324,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                 <div
                   key={cc.id}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    background: 'rgba(var(--md-on-surface-rgb), 0.03)',
+                    border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
                     borderRadius: '10px',
                     padding: '1.25rem',
                     display: 'flex',
@@ -340,8 +340,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                           fontSize: '0.75rem',
                           padding: '0.15rem 0.5rem',
                           borderRadius: '4px',
-                          background: 'rgba(99, 102, 241, 0.15)',
-                          color: '#a5b4fc',
+                          background: 'rgba(var(--md-primary-rgb), 0.15)',
+                          color: 'var(--md-primary)',
                           fontWeight: 600,
                         }}
                       >
@@ -355,8 +355,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                           fontSize: '0.75rem',
                           padding: '0.15rem 0.5rem',
                           borderRadius: '4px',
-                          background: cc.active ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                          color: cc.active ? '#10b981' : '#94a3b8',
+                          background: cc.active ? 'rgba(var(--md-success-rgb), 0.15)' : 'rgba(var(--md-on-surface-rgb), 0.05)',
+                          color: cc.active ? 'var(--md-success)' : 'var(--md-on-surface-variant)',
                           border: 'none',
                         }}
                       >
@@ -364,10 +364,10 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                       </button>
                     </div>
 
-                    <h4 style={{ margin: '0.75rem 0 0.35rem 0', fontSize: '1rem', fontWeight: 600, color: '#f8fafc' }}>
+                    <h4 style={{ margin: '0.75rem 0 0.35rem 0', fontSize: '1rem', fontWeight: 600, color: 'var(--md-on-surface)' }}>
                       {cc.name}
                     </h4>
-                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--md-on-surface-variant)' }}>
                       {cc.description || 'General departmental tracking'}
                     </p>
                   </div>
@@ -380,7 +380,7 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
         {/* Tab 3: Household Member Attribution */}
         {activeTab === 'household' && (
           <div style={{ marginTop: '1.25rem' }}>
-            <div style={{ marginBottom: '1rem', fontSize: '0.88rem', color: '#94a3b8' }}>
+            <div style={{ marginBottom: '1rem', fontSize: '0.88rem', color: 'var(--md-on-surface-variant)' }}>
               Individual spending attribution and net contribution in shared/household workspaces:
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
@@ -388,8 +388,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                 <div
                   key={m.memberId}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    background: 'rgba(var(--md-on-surface-rgb), 0.03)',
+                    border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
                     borderRadius: '10px',
                     padding: '1.25rem',
                   }}
@@ -400,8 +400,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                         width: '40px',
                         height: '40px',
                         borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #6366f1, #3b82f6)',
-                        color: '#fff',
+                        background: 'linear-gradient(135deg, var(--md-primary), var(--md-info))',
+                        color: 'var(--md-on-primary)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -411,25 +411,25 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                       {m.memberName.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: '1rem' }}>{m.memberName}</div>
-                      <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Workspace Member</div>
+                      <div style={{ fontWeight: 600, color: 'var(--md-on-surface)', fontSize: '1rem' }}>{m.memberName}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--md-on-surface-variant)' }}>Workspace Member</div>
                     </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '0.6rem', borderRadius: '6px' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Total Spent</div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#ef4444' }}>${m.totalSpent}</div>
+                    <div style={{ background: 'rgba(var(--md-on-surface-rgb), 0.4)', padding: '0.6rem', borderRadius: '6px' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--md-on-surface-variant)' }}>Total Spent</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--md-error)' }}>${m.totalSpent}</div>
                     </div>
-                    <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '0.6rem', borderRadius: '6px' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Total Income</div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#10b981' }}>${m.totalIncome}</div>
+                    <div style={{ background: 'rgba(var(--md-on-surface-rgb), 0.4)', padding: '0.6rem', borderRadius: '6px' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--md-on-surface-variant)' }}>Total Income</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--md-success)' }}>${m.totalIncome}</div>
                     </div>
                   </div>
 
-                  <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#94a3b8' }}>
+                  <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--md-on-surface-variant)' }}>
                     Net Surplus Contribution:{' '}
-                    <strong style={{ color: parseFloat(m.netContribution) >= 0 ? '#10b981' : '#f59e0b' }}>
+                    <strong style={{ color: parseFloat(m.netContribution) >= 0 ? 'var(--md-success)' : 'var(--md-warning)' }}>
                       ${m.netContribution}
                     </strong>
                   </div>
@@ -442,14 +442,14 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
         {/* Tab 4: Tax / VAT Tool */}
         {activeTab === 'tax_calculator' && (
           <div style={{ marginTop: '1.25rem', maxWidth: '520px' }}>
-            <div style={{ marginBottom: '1.25rem', fontSize: '0.88rem', color: '#94a3b8' }}>
+            <div style={{ marginBottom: '1.25rem', fontSize: '0.88rem', color: 'var(--md-on-surface-variant)' }}>
               Precision Tax / VAT calculation tool powered by `@universal-expense/core` Decimal arithmetic:
             </div>
 
             <div
               style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                background: 'rgba(var(--md-on-surface-rgb), 0.03)',
+                border: '1px solid rgba(var(--md-on-surface-rgb), 0.06)',
                 borderRadius: '12px',
                 padding: '1.5rem',
                 display: 'flex',
@@ -467,9 +467,9 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                     style={{
                       padding: '0.55rem',
                       borderRadius: '8px',
-                      background: !isInclusive ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                      borderColor: !isInclusive ? '#6366f1' : 'transparent',
-                      color: !isInclusive ? '#fff' : '#94a3b8',
+                      background: !isInclusive ? 'rgba(var(--md-primary-rgb), 0.25)' : 'rgba(var(--md-on-surface-rgb), 0.04)',
+                      borderColor: !isInclusive ? 'var(--md-primary)' : 'transparent',
+                      color: !isInclusive ? 'var(--md-on-primary)' : 'var(--md-on-surface-variant)',
                       fontWeight: 600,
                     }}
                   >
@@ -482,9 +482,9 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                     style={{
                       padding: '0.55rem',
                       borderRadius: '8px',
-                      background: isInclusive ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                      borderColor: isInclusive ? '#6366f1' : 'transparent',
-                      color: isInclusive ? '#fff' : '#94a3b8',
+                      background: isInclusive ? 'rgba(var(--md-primary-rgb), 0.25)' : 'rgba(var(--md-on-surface-rgb), 0.04)',
+                      borderColor: isInclusive ? 'var(--md-primary)' : 'transparent',
+                      color: isInclusive ? 'var(--md-on-primary)' : 'var(--md-on-surface-variant)',
                       fontWeight: 600,
                     }}
                   >
@@ -520,8 +520,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
               {/* Result Preview Box */}
               <div
                 style={{
-                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(56, 189, 248, 0.08))',
-                  border: '1px solid rgba(99, 102, 241, 0.3)',
+                  background: 'linear-gradient(135deg, rgba(var(--md-primary-rgb), 0.15), rgba(var(--md-info-rgb), 0.08))',
+                  border: '1px solid rgba(var(--md-primary-rgb), 0.3)',
                   borderRadius: '10px',
                   padding: '1.25rem',
                   display: 'flex',
@@ -529,13 +529,13 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                   gap: '0.6rem',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--md-on-surface-variant)' }}>
                   <span>Net Subtotal:</span>
-                  <strong style={{ color: '#f8fafc' }}>${computedTax.subtotal}</strong>
+                  <strong style={{ color: 'var(--md-on-surface)' }}>${computedTax.subtotal}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--md-on-surface-variant)' }}>
                   <span>Tax ({taxRateInput}%):</span>
-                  <strong style={{ color: '#f59e0b' }}>${computedTax.taxAmount}</strong>
+                  <strong style={{ color: 'var(--md-warning)' }}>${computedTax.taxAmount}</strong>
                 </div>
                 <div
                   style={{
@@ -543,8 +543,8 @@ export default function BusinessView({ onOpenCreateProject, onOpenCreateCostCent
                     justifyContent: 'space-between',
                     fontSize: '1.15rem',
                     fontWeight: 700,
-                    color: '#10b981',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: 'var(--md-success)',
+                    borderTop: '1px solid rgba(var(--md-on-surface-rgb), 0.1)',
                     paddingTop: '0.6rem',
                   }}
                 >

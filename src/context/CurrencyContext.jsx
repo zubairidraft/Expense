@@ -28,9 +28,12 @@ export function CurrencyProvider({ children }) {
       if (data && data.length > 0) {
         setDbRates(data);
         const mapped = { ...STATIC_FALLBACK_RATES };
+        const seen = new Set();
+        // Rows are newest-first: keep only the latest rate per currency
         for (const row of data) {
-          if (row.base_currency === 'USD') {
+          if (row.base_currency === 'USD' && !seen.has(row.quote_currency)) {
             mapped[row.quote_currency] = parseFloat(row.rate);
+            seen.add(row.quote_currency);
           }
         }
         setRates(mapped);
@@ -40,7 +43,8 @@ export function CurrencyProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   useEffect(() => {
     fetchRates();
