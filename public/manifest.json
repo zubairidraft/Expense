@@ -1,7 +1,7 @@
 {
-  "name": "Universal Expense Tracker Pro",
-  "short_name": "ExpensePro",
-  "description": "Multi-currency financial ledger, smart budgeting, and expense tracking",
+  "name": "Next Expenses — Next Level Expense Tracking",
+  "short_name": "Next Expenses",
+  "description": "Next Level Expense Tracking. Built by Next Edge Marketing.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0d14",

@@ -1,6 +1,6 @@
 {
   "appId": "com.expensetracking.app",
-  "appName": "Expense Pro",
+  "appName": "Next Expenses",
   "webDir": "dist",
   "server": {
     "androidScheme": "https",

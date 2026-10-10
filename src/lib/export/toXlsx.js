@@ -13,7 +13,7 @@ export async function exportDatasetToXlsx(dataset, options = {}) {
   const Workbook = ExcelJS.default?.Workbook || ExcelJS.Workbook;
 
   const workbook = new Workbook();
-  workbook.creator = meta.appName || 'Expense Pro';
+  workbook.creator = meta.appName || 'Next Expenses';
   workbook.lastModifiedBy = meta.generatedBy || 'User';
   workbook.created = new Date(meta.generatedAt || Date.now());
   workbook.modified = new Date();

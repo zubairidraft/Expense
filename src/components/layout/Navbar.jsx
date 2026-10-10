@@ -51,12 +51,24 @@ export default function Navbar({
 
         <div className="brand-icon"><Icon name="account_balance_wallet" size={24} filled /></div>
         <div className="brand-text-block">
-          <h1 className="app-title">Expense Pro</h1>
-          <p className="app-subtitle">Multi-currency ledger</p>
+          <h1 className="app-title">Next Expenses</h1>
+          <p className="app-subtitle">Next Level Expense Tracking</p>
         </div>
       </div>
 
       <div className="header-actions-container">
+        {/* Support: Buy Me A Coffee */}
+        <a
+          href="https://buymeacoffee.com/nextedgemarketing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="navbar-bmac-btn desktop-only"
+          title="Support Next Expenses on Buy Me A Coffee"
+        >
+          <span className="bmac-cup">☕</span>
+          <span className="bmac-label">Buy Coffee</span>
+        </a>
+
         {/* Primary Action: Quick Add (Desktop only; mobile uses prominent bottom FAB) */}
         <button
           className="navbar-quick-add-btn desktop-only"

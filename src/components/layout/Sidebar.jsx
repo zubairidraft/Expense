@@ -50,8 +50,8 @@ export default function Sidebar({
             <span className="sidebar-logo"><Icon name="account_balance_wallet" size={22} filled /></span>
             {(!isCollapsed || isMobileOpen) && (
               <div className="sidebar-brand-text">
-                <span className="sidebar-title">Expense Pro</span>
-                <span className="sidebar-tag">Personal finance</span>
+                <span className="sidebar-title">Next Expenses</span>
+                <span className="sidebar-tag">Next Level Expense Tracking</span>
               </div>
             )}
           </div>
@@ -174,6 +174,24 @@ export default function Sidebar({
                   {currentWorkspace?.role?.toUpperCase() || 'OWNER'} · {currentWorkspace?.base_currency}
                 </span>
               </div>
+            </div>
+
+            {/* Support: Buy Me A Coffee */}
+            <a
+              href="https://buymeacoffee.com/nextedgemarketing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sidebar-bmac-btn"
+              title="Support Next Expenses on Buy Me A Coffee"
+            >
+              <span className="bmac-cup">☕</span>
+              <span className="bmac-text">Buy Me A Coffee</span>
+            </a>
+
+            {/* Next Edge Marketing Agency Credit Banner */}
+            <div className="sidebar-agency-banner">
+              <span className="agency-credit-label">⚡ Built by</span>
+              <span className="agency-credit-brand">Next Edge Marketing</span>
             </div>
           </div>
         )}

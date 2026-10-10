@@ -32,7 +32,7 @@ export async function exportDatasetToPdf(dataset, options = {}) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(255, 255, 255);
-  doc.text(meta.appName || 'Expense Pro', margin, 34);
+  doc.text(meta.appName || 'Next Expenses', margin, 34);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(12);
@@ -165,7 +165,7 @@ export async function exportDatasetToPdf(dataset, options = {}) {
       doc.setTextColor(148, 163, 184);
 
       doc.text(
-        `Expense Pro Financial Ledger • Confidential • Generated ${new Date(meta.generatedAt).toLocaleDateString()}`,
+        `Next Expenses Financial Ledger • Confidential • Generated ${new Date(meta.generatedAt).toLocaleDateString()}`,
         margin,
         pageHeight - 16
       );

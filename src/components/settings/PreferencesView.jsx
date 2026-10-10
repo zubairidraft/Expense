@@ -728,6 +728,35 @@ export default function PreferencesView() {
           </div>
         </div>
       )}
+
+      {/* About Next Expenses & Next Edge Marketing */}
+      <div className="card glass-card preferences-about-card">
+        <div className="about-brand-row">
+          <div className="about-brand-info">
+            <h4 className="about-brand-title">Next Expenses</h4>
+            <p className="about-brand-slug">Next Level Expense Tracking</p>
+          </div>
+          <div className="about-agency-badge">
+            <span>Built with precision by</span>
+            <strong>Next Edge Marketing</strong>
+          </div>
+        </div>
+        <div className="about-support-row">
+          <a
+            href="https://buymeacoffee.com/nextedgemarketing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bmac-pill-btn"
+            title="Support Next Expenses on Buy Me A Coffee"
+          >
+            <span>☕</span>
+            <span>Buy Me A Coffee</span>
+          </a>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+            Empowering your financial freedom with next-gen tools.
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

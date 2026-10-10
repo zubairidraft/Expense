@@ -189,7 +189,7 @@ export function buildReportDataset(transactions = [], options = {}) {
 
   return {
     meta: {
-      appName: 'Expense Pro',
+      appName: 'Next Expenses',
       title: 'Financial Activity & Ledger Report',
       workspaceName: workspace?.name || 'Personal Space',
       generatedAt: new Date().toISOString(),
