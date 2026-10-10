@@ -57,18 +57,6 @@ export default function Navbar({
       </div>
 
       <div className="header-actions-container">
-        {/* Support: Buy Me A Coffee */}
-        <a
-          href="https://buymeacoffee.com/nextedgemarketing"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="navbar-bmac-btn desktop-only"
-          title="Support Next Expenses on Buy Me A Coffee"
-        >
-          <span className="bmac-cup">☕</span>
-          <span className="bmac-label">Buy Coffee</span>
-        </a>
-
         {/* Primary Action: Quick Add (Desktop only; mobile uses prominent bottom FAB) */}
         <button
           className="navbar-quick-add-btn desktop-only"

@@ -176,18 +176,6 @@ export default function Sidebar({
               </div>
             </div>
 
-            {/* Support: Buy Me A Coffee */}
-            <a
-              href="https://buymeacoffee.com/nextedgemarketing"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="sidebar-bmac-btn"
-              title="Support Next Expenses on Buy Me A Coffee"
-            >
-              <span className="bmac-cup">☕</span>
-              <span className="bmac-text">Buy Me A Coffee</span>
-            </a>
-
             {/* Next Edge Marketing Agency Credit Banner */}
             <div className="sidebar-agency-banner">
               <span className="agency-credit-label">⚡ Built by</span>
