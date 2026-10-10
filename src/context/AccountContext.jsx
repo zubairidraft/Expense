@@ -154,7 +154,42 @@ export function AccountProvider({ children }) {
           .select('*'),
       ]);
 
-      if (balErr) throw balErr;
+      let balRowsData = balRows;
+      if (balErr || !balRowsData) {
+        console.warn('[AccountContext] v_account_balances_current unavailable, falling back to base accounts table:', balErr?.message);
+        const { data: rawAccs, error: rawErr } = await supabase
+          .from('accounts')
+          .select('*')
+          .eq('workspace_id', currentWorkspace.id)
+          .is('archived_at', null)
+          .order('name');
+
+        if (rawErr) {
+          console.error('[AccountContext] Fallback error fetching accounts:', rawErr);
+          throw rawErr;
+        }
+
+        balRowsData = (rawAccs || []).map((a) => ({
+          account_id: a.id,
+          workspace_id: a.workspace_id,
+          account_name: a.name,
+          account_type: a.type,
+          account_nature: a.nature,
+          currency: a.currency,
+          opening_balance: a.opening_balance,
+          icon: a.icon,
+          color: a.color,
+          visibility: a.visibility,
+          archived_at: a.archived_at,
+          current_balance: a.opening_balance,
+          current_base_balance: a.opening_balance,
+          is_shared: false,
+          share_relation: 'home',
+          can_post: true,
+          count_in_net_worth: true,
+        }));
+      }
+
       if (shareErr) console.warn('[AccountContext] Share overview error:', shareErr.message);
 
       setAccountShares(shareRows || []);
@@ -165,7 +200,7 @@ export function AccountProvider({ children }) {
         sharesByAccount.get(s.account_id).push(s);
       });
 
-      const formatted = (balRows || []).map((row) => {
+      const formatted = (balRowsData || []).map((row) => {
         const sharesOut = (sharesByAccount.get(row.account_id) || []).filter((s) => s.status === 'active');
         return {
           id: row.account_id,
