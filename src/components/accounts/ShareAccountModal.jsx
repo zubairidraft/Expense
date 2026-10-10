@@ -60,13 +60,23 @@ export default function ShareAccountModal({ isOpen, onClose, account }) {
       });
 
       if (res?.error) {
-        setErrorMsg(res.error.message || 'Failed to share account.');
+        const msg = res.error.message || '';
+        if (msg.includes('schema cache') || msg.includes('share_account')) {
+          setErrorMsg('Database migration required: Migration 020 (cross_workspace_account_sharing.sql) needs to be executed in your Supabase SQL Editor.');
+        } else {
+          setErrorMsg(msg || 'Failed to share account.');
+        }
       } else {
         setSuccessMsg('Account successfully shared!');
         setTimeout(() => setSuccessMsg(''), 3000);
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to share account.');
+      const msg = err.message || '';
+      if (msg.includes('schema cache') || msg.includes('share_account')) {
+        setErrorMsg('Database migration required: Migration 020 (cross_workspace_account_sharing.sql) needs to be executed in your Supabase SQL Editor.');
+      } else {
+        setErrorMsg(msg || 'Failed to share account.');
+      }
     } finally {
       setSubmitting(false);
     }
