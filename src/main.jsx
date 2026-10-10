@@ -18,10 +18,12 @@ import { BusinessProvider } from './context/BusinessContext'
 import { CurrencyProvider } from './context/CurrencyContext'
 import { AnalyticsProvider } from './context/AnalyticsContext'
 import { NotificationProvider } from './context/NotificationContext'
+import ErrorBoundary from './components/ui/ErrorBoundary'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
       <ThemeProvider>
       <WorkspaceProvider>
         <AccountProvider>
@@ -54,6 +56,7 @@ createRoot(document.getElementById('root')).render(
       </WorkspaceProvider>
       </ThemeProvider>
     </AuthProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )
 

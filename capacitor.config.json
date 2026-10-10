@@ -3,6 +3,7 @@
   "appName": "Expense Pro",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "cleartext": true
   }
 }
