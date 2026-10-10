@@ -23,7 +23,9 @@ jobs:
           cache: 'npm'
 
       - name: 3. Install Dependencies
-        run: npm ci || npm install
+        run: |
+          npm install
+          npm install --prefix packages/core
 
       - name: 4. Build Production Web Assets
         env:
