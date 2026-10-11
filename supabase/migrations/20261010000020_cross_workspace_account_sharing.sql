@@ -36,17 +36,87 @@ CREATE INDEX IF NOT EXISTS idx_account_shares_active ON public.account_shares(ac
 ALTER TABLE public.account_shares ENABLE ROW LEVEL SECURITY;
 
 -- -----------------------------------------------------------------------------
--- 2. RLS Policies for account_shares
+-- 2. SECURITY DEFINER Helpers to break RLS mutual recursion (accounts <-> account_shares)
+-- -----------------------------------------------------------------------------
+CREATE SCHEMA IF NOT EXISTS private;
+
+CREATE OR REPLACE FUNCTION private.is_account_shared_with_user(p_account_id UUID, p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.account_shares s
+    WHERE s.account_id = p_account_id
+      AND s.status = 'active'
+      AND public.is_workspace_member(s.workspace_id, p_user_id)
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION private.is_account_home_member(p_account_id UUID, p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.accounts a
+    WHERE a.id = p_account_id
+      AND public.is_workspace_member(a.workspace_id, p_user_id)
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION private.can_share_account(p_account_id UUID, p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.accounts a
+    WHERE a.id = p_account_id
+      AND a.visibility = 'shared'
+      AND a.archived_at IS NULL
+      AND public.get_user_workspace_role(a.workspace_id, p_user_id) IN ('owner', 'admin')
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION private.is_account_home_admin(p_account_id UUID, p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.accounts a
+    WHERE a.id = p_account_id
+      AND public.get_user_workspace_role(a.workspace_id, p_user_id) IN ('owner', 'admin')
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION private.is_account_shared_with_user(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION private.is_account_home_member(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION private.can_share_account(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION private.is_account_home_admin(UUID, UUID) TO authenticated;
+
+REVOKE EXECUTE ON FUNCTION private.is_account_shared_with_user(UUID, UUID) FROM anon, PUBLIC;
+REVOKE EXECUTE ON FUNCTION private.is_account_home_member(UUID, UUID) FROM anon, PUBLIC;
+REVOKE EXECUTE ON FUNCTION private.can_share_account(UUID, UUID) FROM anon, PUBLIC;
+REVOKE EXECUTE ON FUNCTION private.is_account_home_admin(UUID, UUID) FROM anon, PUBLIC;
+
+-- -----------------------------------------------------------------------------
+-- 3. RLS Policies for account_shares (Recursion-Free)
 -- -----------------------------------------------------------------------------
 -- SELECT: viewable by members of either home workspace or target shared workspace
 DROP POLICY IF EXISTS "Account shares viewable by involved workspace members" ON public.account_shares;
 CREATE POLICY "Account shares viewable by involved workspace members" ON public.account_shares
   FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.accounts a
-      WHERE a.id = account_shares.account_id
-        AND public.is_workspace_member(a.workspace_id, auth.uid())
-    )
+    private.is_account_home_member(account_id, auth.uid())
     OR public.is_workspace_member(workspace_id, auth.uid())
   );
 
@@ -54,13 +124,7 @@ CREATE POLICY "Account shares viewable by involved workspace members" ON public.
 DROP POLICY IF EXISTS "Account shares insertable by owners/admins of both workspaces" ON public.account_shares;
 CREATE POLICY "Account shares insertable by owners/admins of both workspaces" ON public.account_shares
   FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.accounts a
-      WHERE a.id = account_shares.account_id
-        AND a.visibility = 'shared'
-        AND a.archived_at IS NULL
-        AND public.get_user_workspace_role(a.workspace_id, auth.uid()) IN ('owner', 'admin')
-    )
+    private.can_share_account(account_id, auth.uid())
     AND public.get_user_workspace_role(workspace_id, auth.uid()) IN ('owner', 'admin')
   );
 
@@ -68,15 +132,11 @@ CREATE POLICY "Account shares insertable by owners/admins of both workspaces" ON
 DROP POLICY IF EXISTS "Account shares updatable by home workspace admins" ON public.account_shares;
 CREATE POLICY "Account shares updatable by home workspace admins" ON public.account_shares
   FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM public.accounts a
-      WHERE a.id = account_shares.account_id
-        AND public.get_user_workspace_role(a.workspace_id, auth.uid()) IN ('owner', 'admin')
-    )
+    private.is_account_home_admin(account_id, auth.uid())
   );
 
 -- -----------------------------------------------------------------------------
--- 3. Update public.accounts SELECT policy to include shared accounts
+-- 4. Update public.accounts SELECT policy to include shared accounts (Recursion-Free)
 -- -----------------------------------------------------------------------------
 DROP POLICY IF EXISTS "Accounts viewable by authorized workspace members" ON public.accounts;
 CREATE POLICY "Accounts viewable by authorized workspace members" ON public.accounts
@@ -94,12 +154,7 @@ CREATE POLICY "Accounts viewable by authorized workspace members" ON public.acco
     OR (
       visibility = 'shared'
       AND archived_at IS NULL
-      AND EXISTS (
-        SELECT 1 FROM public.account_shares s
-        WHERE s.account_id = accounts.id
-          AND s.status = 'active'
-          AND public.is_workspace_member(s.workspace_id, auth.uid())
-      )
+      AND private.is_account_shared_with_user(id, auth.uid())
     )
   );
 
