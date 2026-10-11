@@ -194,6 +194,25 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Google sign-in / sign-up (same call: Supabase creates the account on first use)
+  const signInWithGoogle = async () => {
+    setAuthError(null);
+    try {
+      // Keep a pending workspace-invite token through the Google round trip
+      const inviteToken = new URLSearchParams(window.location.search).get('invite');
+      const redirectTo = window.location.origin + (inviteToken ? `/?invite=${encodeURIComponent(inviteToken)}` : '');
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo, queryParams: { prompt: 'select_account' } },
+      });
+      if (error) throw error;
+      return { data, error: null };
+    } catch (err) {
+      setAuthError(err.message);
+      return { data: null, error: err };
+    }
+  };
+
   const signOut = async () => {
     setAuthError(null);
     try {
@@ -297,6 +316,7 @@ export function AuthProvider({ children }) {
         setAuthError,
         signUp,
         signIn,
+        signInWithGoogle,
         signOut,
         resetPassword,
         updateProfile,

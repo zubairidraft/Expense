@@ -3,11 +3,13 @@ import { useWorkspace } from '../../context/WorkspaceContext';
 import { useAuth } from '../../context/AuthContext';
 
 export default function WorkspaceMembersModal({ isOpen, onClose }) {
-  const { currentWorkspace, members, fetchMembers, archiveWorkspace } = useWorkspace();
+  const { currentWorkspace, members, fetchMembers, archiveWorkspace, inviteMember } = useWorkspace();
   const { user } = useAuth();
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('member');
   const [inviteStatus, setInviteStatus] = useState('');
+  const [inviteError, setInviteError] = useState('');
+  const [inviting, setInviting] = useState(false);
   const [archiving, setArchiving] = useState(false);
 
   useEffect(() => {
@@ -20,13 +22,26 @@ export default function WorkspaceMembersModal({ isOpen, onClose }) {
 
   const isOwnerOrAdmin = currentWorkspace.role === 'owner' || currentWorkspace.role === 'admin';
 
-  const handleInvite = (e) => {
+  const handleInvite = async (e) => {
     e.preventDefault();
     if (!inviteEmail.trim()) return;
-
-    setInviteStatus(`Invitation sent to ${inviteEmail} as ${inviteRole}!`);
+    setInviting(true);
+    setInviteError('');
+    setInviteStatus('');
+    const res = await inviteMember(currentWorkspace.id, { email: inviteEmail.trim(), role: inviteRole });
+    setInviting(false);
+    if (res?.error) {
+      setInviteError(res.error.message || 'Could not send the invitation.');
+      return;
+    }
+    const out = res?.data;
+    setInviteStatus(
+      out && out.emailed
+        ? `Invitation emailed to ${inviteEmail.trim()} as ${inviteRole}.`
+        : `Invitation created for ${inviteEmail.trim()} as ${inviteRole}. ${(out && out.emailNote) || ''}`
+    );
     setInviteEmail('');
-    setTimeout(() => setInviteStatus(''), 2500);
+    setTimeout(() => setInviteStatus(''), 9000);
   };
 
   const handleArchive = async () => {
@@ -94,6 +109,11 @@ export default function WorkspaceMembersModal({ isOpen, onClose }) {
                 <span>✓</span> {inviteStatus}
               </div>
             )}
+            {inviteError && (
+              <div className="auth-alert error">
+                <span>!</span> {inviteError}
+              </div>
+            )}
             <div className="form-row-2">
               <input
                 type="email"
@@ -114,8 +134,8 @@ export default function WorkspaceMembersModal({ isOpen, onClose }) {
                 <option value="admin">Admin (Manage members)</option>
               </select>
             </div>
-            <button type="submit" className="submit-btn primary-glow">
-              Send Invite
+            <button type="submit" className="submit-btn primary-glow" disabled={inviting}>
+              {inviting ? 'Sending...' : 'Send Invite'}
             </button>
           </form>
         )}

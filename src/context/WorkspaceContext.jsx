@@ -11,6 +11,8 @@ export function WorkspaceProvider({ children }) {
     return localStorage.getItem('active_workspace_id') || null;
   });
   const [members, setMembers] = useState([]);
+  const [invitations, setInvitations] = useState([]); // pending invitations sent from the current workspace
+  const [myInvitations, setMyInvitations] = useState([]); // pending invitations addressed to me
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -313,56 +315,119 @@ export function WorkspaceProvider({ children }) {
     }
   }, [user, profile.fullName, profile.defaultCurrency, currentWorkspaceId]);
 
-  const addMember = async (workspaceId, { name, email, role = 'member' }) => {
-    const wsId = workspaceId || currentWorkspaceId || 'guest-space';
+  const isRealWorkspace = (wsId) => !!user && !!wsId && wsId !== 'guest-space';
+
+  // Guest mode only: members live in localStorage (no real accounts, nobody is emailed)
+  const addGuestMember = (wsId, { name, email, role }) => {
     const newMember = {
       id: `m-${Date.now()}`,
       user_id: `user-${Date.now()}`,
       role: role.toLowerCase(),
       status: 'active',
       joined_at: new Date().toISOString(),
-      email: email,
+      email,
       profiles: {
         full_name: name || email.split('@')[0],
         default_currency: currentWorkspace?.base_currency || 'USD',
       },
     };
+    setMembers((prev) => {
+      const updated = [...prev, newMember];
+      try {
+        localStorage.setItem(`expense_pro_ws_members_${wsId}`, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    return { data: newMember, error: null };
+  };
 
-    if (!user || wsId === 'guest-space') {
-      setMembers((prev) => {
-        const updated = [...prev, newMember];
-        try {
-          localStorage.setItem(`expense_pro_ws_members_${wsId}`, JSON.stringify(updated));
-        } catch (e) {}
-        return updated;
-      });
-      return { data: newMember, error: null };
+  const fetchInvitations = useCallback(async (workspaceId) => {
+    const wsId = workspaceId || currentWorkspaceId;
+    if (!isRealWorkspace(wsId)) {
+      setInvitations([]);
+      return;
+    }
+    const { data, error: invErr } = await supabase
+      .from('workspace_invitations')
+      .select('id, email, role, status, created_at, expires_at')
+      .eq('workspace_id', wsId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    if (invErr) {
+      // Members without owner/admin rights simply cannot see invitations
+      setInvitations([]);
+      return;
+    }
+    setInvitations(data || []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, currentWorkspaceId]);
+
+  // Invite by email. Signed-in: creates a real invitation (and emails people without an account).
+  const inviteMember = async (workspaceId, { email, role = 'member', name }) => {
+    const wsId = workspaceId || currentWorkspaceId || 'guest-space';
+    if (!isRealWorkspace(wsId)) {
+      return addGuestMember(wsId, { name, email, role });
     }
 
+    const cleanEmail = (email || '').trim();
+    let result = null;
+
+    // 1) Edge function: creates the invitation and sends the email
     try {
-      // In production database
-      const { data, error: insErr } = await supabase
-        .from('workspace_members')
-        .insert({
-          workspace_id: wsId,
-          role: role.toLowerCase(),
-          status: 'active',
-        })
-        .select()
-        .single();
-      if (insErr) throw insErr;
-      await fetchMembers(wsId);
-      return { data, error: null };
-    } catch (err) {
-      // Fallback local update if offline / RLS
-      setMembers((prev) => [...prev, newMember]);
-      return { data: newMember, error: null };
+      const { data, error: fnErr } = await supabase.functions.invoke('send-workspace-invite', {
+        body: { workspaceId: wsId, email: cleanEmail, role, siteUrl: window.location.origin },
+      });
+      if (fnErr) {
+        const status = fnErr.context?.status;
+        if (status && status !== 404) {
+          let message = fnErr.message;
+          try {
+            const body = await fnErr.context.json();
+            if (body?.error) message = body.error;
+          } catch (e) {}
+          return { data: null, error: new Error(message) };
+        }
+        // 404 / network: function not deployed yet -> fall through to the database call
+      } else if (data?.invitation) {
+        result = { invitation: data.invitation, emailed: !!data.emailed, emailNote: data.emailNote || null };
+      }
+    } catch (e) {
+      // fall through
     }
+
+    // 2) Fallback: create the invitation without sending an email
+    if (!result) {
+      const { data, error: rpcErr } = await supabase.rpc('invite_member', {
+        p_workspace_id: wsId,
+        p_email: cleanEmail,
+        p_role: role,
+      });
+      if (rpcErr) return { data: null, error: new Error(rpcErr.message) };
+      result = {
+        invitation: data,
+        emailed: false,
+        emailNote: data?.user_exists
+          ? 'This person already has an account. They will see the invitation after signing in.'
+          : 'Invitation saved, but the email could not be sent (email service not set up). Ask them to sign up with this email address; the invitation will be waiting.',
+      };
+    }
+
+    await fetchInvitations(wsId);
+    return { data: result, error: null };
+  };
+
+  const addMember = async (workspaceId, member) => inviteMember(workspaceId, member);
+
+  const revokeInvitation = async (invitationId) => {
+    const { error: revErr } = await supabase.rpc('revoke_invitation', { p_invitation_id: invitationId });
+    if (revErr) return { error: new Error(revErr.message) };
+    await fetchInvitations();
+    return { error: null };
   };
 
   const removeMember = async (workspaceId, memberId) => {
     const wsId = workspaceId || currentWorkspaceId || 'guest-space';
-    if (!user || wsId === 'guest-space') {
+    if (!isRealWorkspace(wsId)) {
       setMembers((prev) => {
         const updated = prev.filter((m) => m.id !== memberId);
         try {
@@ -373,24 +438,72 @@ export function WorkspaceProvider({ children }) {
       return { error: null };
     }
 
-    try {
-      const { error: delErr } = await supabase
-        .from('workspace_members')
-        .delete()
-        .eq('id', memberId);
-      if (delErr) throw delErr;
-      await fetchMembers(wsId);
-      return { error: null };
-    } catch (err) {
-      // Fallback local remove
-      setMembers((prev) => prev.filter((m) => m.id !== memberId));
-      return { error: null };
+    const { data, error: delErr } = await supabase
+      .from('workspace_members')
+      .delete()
+      .eq('id', memberId)
+      .select('id');
+    if (delErr) return { error: new Error(delErr.message) };
+    if (!data || data.length === 0) {
+      return { error: new Error('Could not remove this member (not allowed or already removed).') };
     }
+    await fetchMembers(wsId);
+    return { error: null };
   };
 
-  const inviteMember = async (workspaceId, { email, role = 'member' }) => {
-    return addMember(workspaceId, { name: email.split('@')[0], email, role });
+  // ---- Invitations addressed to the signed-in user ----
+  const fetchMyInvitations = useCallback(async () => {
+    if (!user) {
+      setMyInvitations([]);
+      return;
+    }
+    const { data, error: invErr } = await supabase.rpc('my_pending_invitations');
+    if (invErr) {
+      setMyInvitations([]);
+      return;
+    }
+    setMyInvitations(data || []);
+  }, [user]);
+
+  const acceptInvitation = async (token) => {
+    const { data, error: accErr } = await supabase.rpc('accept_invitation', { p_token: token });
+    if (accErr) return { data: null, error: new Error(accErr.message) };
+    await fetchWorkspaces();
+    if (data?.workspace_id) {
+      setCurrentWorkspaceId(data.workspace_id);
+      try {
+        localStorage.setItem('active_workspace_id', data.workspace_id);
+      } catch (e) {}
+    }
+    await fetchMyInvitations();
+    return { data, error: null };
   };
+
+  const declineInvitation = async (invitationId) => {
+    const { error: decErr } = await supabase.rpc('decline_invitation', { p_invitation_id: invitationId });
+    if (decErr) return { error: new Error(decErr.message) };
+    await fetchMyInvitations();
+    return { error: null };
+  };
+
+  useEffect(() => {
+    fetchMyInvitations();
+  }, [fetchMyInvitations]);
+
+  // Opening the app from an emailed invite link (?invite=<token>) accepts it once signed in
+  useEffect(() => {
+    if (!user) return;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('invite');
+    if (!token) return;
+    params.delete('invite');
+    const qs = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash);
+    acceptInvitation(token).then((res) => {
+      if (res?.error) console.warn('[WorkspaceContext] Invite link not accepted:', res.error.message);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   return (
     <WorkspaceContext.Provider
@@ -409,6 +522,13 @@ export function WorkspaceProvider({ children }) {
         addMember,
         removeMember,
         inviteMember,
+        invitations,
+        fetchInvitations,
+        revokeInvitation,
+        myInvitations,
+        fetchMyInvitations,
+        acceptInvitation,
+        declineInvitation,
         refreshWorkspaces: fetchWorkspaces,
       }}
     >

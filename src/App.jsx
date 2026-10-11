@@ -8,6 +8,7 @@ import AuthModal from './components/auth/AuthModal'
 import ProfileSettingsModal from './components/profile/ProfileSettingsModal'
 import CreateWorkspaceModal from './components/workspace/CreateWorkspaceModal'
 import WorkspaceMembersModal from './components/workspace/WorkspaceMembersModal'
+import PendingInvitations from './components/workspace/PendingInvitations'
 import AccountsView from './components/accounts/AccountsView'
 import CreateAccountModal from './components/accounts/CreateAccountModal'
 import CategoriesView from './components/categories/CategoriesView'
@@ -344,6 +345,8 @@ export default function App() {
         isOpen={createWsModalOpen}
         onClose={() => setCreateWsModalOpen(false)}
       />
+
+      <PendingInvitations />
 
       {/* Workspace Members & Settings Modal */}
       <WorkspaceMembersModal

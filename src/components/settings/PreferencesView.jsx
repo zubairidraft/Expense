@@ -15,8 +15,11 @@ export default function PreferencesView() {
     archiveWorkspace,
     members,
     fetchMembers,
-    addMember,
+    inviteMember,
     removeMember,
+    invitations,
+    fetchInvitations,
+    revokeInvitation,
   } = useWorkspace();
 
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'appearance' | 'workspace' | 'members' | 'data'
@@ -64,8 +67,9 @@ export default function PreferencesView() {
       setWsMonthStart(currentWorkspace.month_start_day || 1);
       setWsBudgetStyle(currentWorkspace.budgeting_style || 'limit_based');
       fetchMembers(currentWorkspace.id);
+      fetchInvitations(currentWorkspace.id);
     }
-  }, [currentWorkspace, fetchMembers]);
+  }, [currentWorkspace, fetchMembers, fetchInvitations]);
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -110,28 +114,57 @@ export default function PreferencesView() {
     }
   };
 
+  const [memberMsgType, setMemberMsgType] = useState('success'); // 'success' | 'error' | 'info'
+
+  const showMemberMsg = (text, type = 'success', ms = 6000) => {
+    setMemberMsgType(type);
+    setMemberMsg(text);
+    setTimeout(() => setMemberMsg(''), ms);
+  };
+
   const handleAddMember = async (e) => {
     e.preventDefault();
     if (!newMemberEmail.trim()) return;
     setMemberLoading(true);
     setMemberMsg('');
-    await addMember(currentWorkspace?.id, {
+    const res = await inviteMember(currentWorkspace?.id, {
       name: newMemberName.trim(),
       email: newMemberEmail.trim(),
       role: newMemberRole,
     });
     setMemberLoading(false);
-    setMemberMsg(`Added ${newMemberName || newMemberEmail} as ${newMemberRole.toUpperCase()}!`);
+
+    if (res?.error) {
+      showMemberMsg(res.error.message || 'Could not send the invitation.', 'error', 8000);
+      return;
+    }
+    const target = newMemberName.trim() || newMemberEmail.trim();
+    const out = res?.data;
+    if (out && out.invitation) {
+      if (out.emailed) {
+        showMemberMsg(`Invitation emailed to ${newMemberEmail.trim()} as ${newMemberRole.toUpperCase()}.`);
+      } else {
+        showMemberMsg(`Invitation created for ${newMemberEmail.trim()}. ${out.emailNote || ''}`, 'info', 10000);
+      }
+    } else {
+      showMemberMsg(`Added ${target} as ${newMemberRole.toUpperCase()}.`);
+    }
     setNewMemberName('');
     setNewMemberEmail('');
-    setTimeout(() => setMemberMsg(''), 3500);
+  };
+
+  const handleRevokeInvitation = async (invId, invEmail) => {
+    if (!window.confirm(`Cancel the invitation sent to ${invEmail}?`)) return;
+    const res = await revokeInvitation(invId);
+    if (res?.error) showMemberMsg(res.error.message, 'error');
+    else showMemberMsg('Invitation cancelled.');
   };
 
   const handleRemoveMember = async (memberId, memberName) => {
     if (!window.confirm(`Are you sure you want to remove ${memberName || 'this member'}?`)) return;
-    await removeMember(currentWorkspace?.id, memberId);
-    setMemberMsg(`Member removed successfully.`);
-    setTimeout(() => setMemberMsg(''), 3000);
+    const res = await removeMember(currentWorkspace?.id, memberId);
+    if (res?.error) showMemberMsg(res.error.message, 'error');
+    else showMemberMsg('Member removed successfully.');
   };
 
   const handleExportData = () => {
@@ -527,21 +560,21 @@ export default function PreferencesView() {
                 👥 Workspace Members & Collaborators
               </h3>
               <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-                Invite team members, assign access roles, and remove collaborators from this workspace.
+                Invite people by email, assign access roles, and remove collaborators from this workspace.
               </p>
             </div>
           </div>
 
           {memberMsg && (
-            <div className="auth-alert success" style={{ marginBottom: '1.5rem' }}>
-              <span>✓</span> {memberMsg}
+            <div className={`auth-alert ${memberMsgType === 'error' ? 'error' : 'success'}`} style={{ marginBottom: '1.5rem' }}>
+              <span>{memberMsgType === 'error' ? '!' : memberMsgType === 'info' ? 'i' : '✓'}</span> {memberMsg}
             </div>
           )}
 
           {/* Add / Invite Member Form */}
           <form onSubmit={handleAddMember} style={{ background: 'var(--bg-main, rgba(0,0,0,0.15))', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color, rgba(var(--md-on-surface-rgb), 0.08))', marginBottom: '1.75rem' }}>
             <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-              ➕ Add or Invite New Collaborator
+              ➕ Invite New Collaborator
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
               <div className="form-group" style={{ margin: 0 }}>
@@ -587,11 +620,52 @@ export default function PreferencesView() {
                   disabled={memberLoading || !newMemberEmail.trim()}
                   style={{ width: '100%', padding: '0.75rem 1rem' }}
                 >
-                  {memberLoading ? 'Adding...' : 'Add Member'}
+                  {memberLoading ? 'Sending...' : 'Send Invitation'}
                 </button>
               </div>
             </div>
           </form>
+
+          {/* Pending invitations (owner/admin only; empty for guests) */}
+          {invitations && invitations.length > 0 && (
+            <div style={{ marginBottom: '1.75rem' }}>
+              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Pending Invitations ({invitations.length})
+              </h4>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="data-table" style={{ width: '100%' }}>
+                  <thead>
+                    <tr>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Sent</th>
+                      <th>Expires</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invitations.map((inv) => (
+                      <tr key={inv.id}>
+                        <td>{inv.email}</td>
+                        <td>{inv.role?.toUpperCase()}</td>
+                        <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{inv.created_at?.split('T')[0]}</td>
+                        <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{inv.expires_at?.split('T')[0]}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="btn-pill"
+                            onClick={() => handleRevokeInvitation(inv.id, inv.email)}
+                          >
+                            Cancel
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Members Table */}
           <div style={{ overflowX: 'auto' }}>
