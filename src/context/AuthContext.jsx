@@ -1,5 +1,9 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { Capacitor } from '@capacitor/core';
+
+// Deep link used by the Android app to come back after Google sign-in
+export const NATIVE_REDIRECT = 'com.expensetracking.app://login-callback';
 
 const AuthContext = createContext(null);
 
@@ -158,6 +162,44 @@ export function AuthProvider({ children }) {
     };
   }, [loadProfile]);
 
+  // Android app: finish Google sign-in when the browser returns via deep link
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return undefined;
+    let handle;
+    let cancelled = false;
+    (async () => {
+      const { App } = await import('@capacitor/app');
+      const { Browser } = await import('@capacitor/browser');
+      handle = await App.addListener('appUrlOpen', async ({ url }) => {
+        if (!url || !url.startsWith(NATIVE_REDIRECT)) return;
+        try {
+          const hash = url.includes('#') ? url.split('#')[1] : '';
+          const query = url.includes('?') ? url.split('?')[1].split('#')[0] : '';
+          const params = new URLSearchParams(hash || query);
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+          const code = params.get('code');
+          if (accessToken && refreshToken) {
+            await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          } else if (code) {
+            await supabase.auth.exchangeCodeForSession(code);
+          } else if (params.get('error_description')) {
+            setAuthError(params.get('error_description'));
+          }
+        } catch (err) {
+          setAuthError(err.message);
+        } finally {
+          try { await Browser.close(); } catch { /* already closed */ }
+        }
+      });
+      if (cancelled) handle.remove();
+    })();
+    return () => {
+      cancelled = true;
+      if (handle) handle.remove();
+    };
+  }, []);
+
   const signUp = async ({ email, password, fullName, defaultCurrency = 'USD' }) => {
     setAuthError(null);
     try {
@@ -200,6 +242,16 @@ export function AuthProvider({ children }) {
     try {
       // Keep a pending workspace-invite token through the Google round trip
       const inviteToken = new URLSearchParams(window.location.search).get('invite');
+      if (Capacitor.isNativePlatform()) {
+        const { Browser } = await import('@capacitor/browser');
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: NATIVE_REDIRECT, skipBrowserRedirect: true, queryParams: { prompt: 'select_account' } },
+        });
+        if (error) throw error;
+        await Browser.open({ url: data.url });
+        return { data, error: null };
+      }
       const redirectTo = window.location.origin + (inviteToken ? `/?invite=${encodeURIComponent(inviteToken)}` : '');
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
