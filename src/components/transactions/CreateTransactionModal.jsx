@@ -9,7 +9,7 @@ import { todayISO } from '../../lib/dates';
 
 export default function CreateTransactionModal({ isOpen, onClose, initialDraft = null }) {
   const { accounts } = useAccounts();
-  const { categories, merchants, tags, expenseCategories, incomeCategories } = useCategories();
+  const { categories, merchants, tags, expenseCategories, incomeCategories, createMerchant, createTag } = useCategories();
   const { addTransaction } = useTransactions();
   const { currentWorkspace } = useWorkspace();
   const { convert } = useCurrency() || {};
@@ -110,6 +110,44 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
     setSelectedTagIds((prev) =>
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
     );
+  };
+
+  // Inline create: new tag / merchant without leaving the form
+  const [newTagName, setNewTagName] = useState('');
+  const [inlineBusy, setInlineBusy] = useState(false);
+  const TAG_COLORS = ['#8b5cf6', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
+
+  const addInlineTag = async () => {
+    const name = newTagName.trim();
+    if (!name || inlineBusy) return;
+    const existing = tags.find((t) => t.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      setSelectedTagIds((prev) => (prev.includes(existing.id) ? prev : [...prev, existing.id]));
+      setNewTagName('');
+      return;
+    }
+    setInlineBusy(true);
+    const { data } = await createTag({ name, color: TAG_COLORS[tags.length % TAG_COLORS.length] });
+    setInlineBusy(false);
+    if (data?.id) {
+      setSelectedTagIds((prev) => [...prev, data.id]);
+      setNewTagName('');
+    }
+  };
+
+  const payeeQuery = payeeName.trim().toLowerCase();
+  const merchantMatches = payeeQuery && !selectedMerchantId
+    ? merchants.filter((m) => m.name.toLowerCase().includes(payeeQuery)).slice(0, 4)
+    : [];
+  const payeeIsNew = payeeQuery && !merchants.some((m) => m.name.toLowerCase() === payeeQuery);
+
+  const addInlineMerchant = async () => {
+    const name = payeeName.trim();
+    if (!name || inlineBusy) return;
+    setInlineBusy(true);
+    const { data } = await createMerchant({ name, defaultCategoryId: categoryId || null });
+    setInlineBusy(false);
+    if (data?.id) setSelectedMerchantId(data.id);
   };
 
   const handleSubmit = async (e) => {
@@ -331,8 +369,25 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
                   placeholder="e.g. Carrefour, Apple Cloud, Freelance Client"
                   className="input-field"
                   value={payeeName}
-                  onChange={(e) => setPayeeName(e.target.value)}
+                  onChange={(e) => { setPayeeName(e.target.value); if (selectedMerchantId) setSelectedMerchantId(''); }}
                 />
+                {!selectedMerchantId && payeeQuery && (merchantMatches.length > 0 || payeeIsNew) && (
+                  <div className="tags-cloud-select" style={{ marginTop: '0.4rem' }}>
+                    {merchantMatches.map((m) => (
+                      <button type="button" key={m.id} className="tag-select-chip" onClick={() => handleMerchantChange(m.id)}>
+                        <span>{m.name}</span>
+                      </button>
+                    ))}
+                    {payeeIsNew && (
+                      <button type="button" className="tag-select-chip" disabled={inlineBusy} onClick={addInlineMerchant}>
+                        <span>＋ "{payeeName.trim()}" ko merchant bana lo</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+                {selectedMerchantId && (
+                  <small style={{ color: 'var(--text-secondary)' }}>✓ Merchant linked</small>
+                )}
               </div>
 
               {merchants.length > 0 && (
@@ -580,7 +635,7 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
           )}
 
           {/* Tags Cloud Selector */}
-          {tags.length > 0 && (
+          {(
             <div className="form-group">
               <label>Attach Tags</label>
               <div className="tags-cloud-select">
@@ -602,6 +657,17 @@ export default function CreateTransactionModal({ isOpen, onClose, initialDraft =
                     </button>
                   );
                 })}
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem' }}>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Naya tag likho, Enter dabao"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addInlineTag(); } }}
+                />
+                <button type="button" className="btn-secondary" disabled={inlineBusy || !newTagName.trim()} onClick={addInlineTag}>＋</button>
               </div>
             </div>
           )}

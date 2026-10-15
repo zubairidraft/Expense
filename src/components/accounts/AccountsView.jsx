@@ -5,6 +5,7 @@ import MoneyDisplay from '../ui/MoneyDisplay';
 import StatCard from '../ui/StatCard';
 import ShareAccountModal from './ShareAccountModal';
 import AccountLedgerModal from './AccountLedgerModal';
+import SharingActivityPanel from './SharingActivityPanel';
 
 export default function AccountsView({ onOpenCreateAccount, onOpenTransfer, onEditTransfer }) {
   const { accounts, accountShares = [], totalAssets, totalLiabilities, netWorth, archiveAccount } = useAccounts();
@@ -359,6 +360,8 @@ export default function AccountsView({ onOpenCreateAccount, onOpenTransfer, onEd
           })
         )}
       </div>
+
+      <SharingActivityPanel />
 
       {/* Share Account Modal */}
       <ShareAccountModal

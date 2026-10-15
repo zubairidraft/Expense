@@ -18,6 +18,7 @@ import { CashFlowBarChart } from '../analytics/SmartCharts';
 import { todayISO } from '../../lib/dates';
 import { useCategories } from '../../context/CategoryContext';
 import { isLiveTransaction } from '../../lib/money';
+import MonthlySummaryCard from './MonthlySummaryCard';
 
 export const DEFAULT_WIDGETS = [
   { id: 'stats', label: 'Key Financial Metrics', icon: 'monitoring', enabled: true, w: 12, h: 2, description: 'Net Worth, Inflow, Outflow, and Savings rate' },
@@ -989,6 +990,8 @@ export default function DashboardView({ onNavigateTab, onOpenOnboarding, onOpenT
           </button>
         </div>
       </div>
+
+      <MonthlySummaryCard />
 
       {/* Resizable, reorderable widget grid */}
       <WidgetGrid

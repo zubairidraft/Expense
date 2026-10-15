@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { clearAllCaches } from '../lib/offlineCache';
 import { supabase } from '../lib/supabase';
 import { Capacitor } from '@capacitor/core';
 
@@ -274,6 +275,7 @@ export function AuthProvider({ children }) {
       try {
         localStorage.removeItem('expense_pro_profile');
       } catch {}
+      clearAllCaches();
       return { error: null };
     } catch (err) {
       setAuthError(err.message);

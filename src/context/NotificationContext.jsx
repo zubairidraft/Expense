@@ -4,14 +4,20 @@ import { useWorkspace } from './WorkspaceContext';
 import { useAuth } from './AuthContext';
 import { useBudgets } from './BudgetContext';
 import { useRecurring } from './RecurringContext';
+import { useSharedDebts } from './SharedDebtsContext';
+import { syncLocalReminders } from '../lib/localReminders';
 
 const NotificationContext = createContext(null);
+const EMPTY = [];
 
 export function NotificationProvider({ children }) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const { budgets } = useBudgets();
   const { recurringProfiles } = useRecurring();
+  const sharedDebts = useSharedDebts();
+  const debts = sharedDebts?.debts || EMPTY;
+  const contacts = sharedDebts?.contacts || EMPTY;
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -139,31 +145,35 @@ export function NotificationProvider({ children }) {
     }
   };
 
-  // Synthetic local threshold alerts (e.g. budgets over 80% or 100%, recurring due soon)
+  // Synthetic local threshold alerts: budgets (at each budget's own threshold, default 80%),
+  // bills due soon, and loans / udhaar due or overdue
   const syntheticAlerts = useMemo(() => {
     const alerts = [];
+    const periodTag = new Date().toISOString().slice(0, 7); // re-alert each month
 
-    // Check budgets
+    // Budgets
     budgets.forEach((b) => {
       const spent = parseFloat(b.spent || 0);
       const limit = parseFloat(b.amount || 0);
+      const threshold = Number(b.alert_threshold) > 0 ? Number(b.alert_threshold) : 80;
+      const label = b.category_name || b.categories?.name || b.name || 'Category';
       if (limit > 0) {
         const pct = (spent / limit) * 100;
         if (pct >= 100) {
           alerts.push({
-            id: `budget-exceeded-${b.id}`,
+            id: `budget-exceeded-${b.id}-${periodTag}`,
             type: 'budget_exceeded',
-            title: `Budget Exceeded: ${b.name || 'Category'}`,
-            message: `Spending reached ${pct.toFixed(0)}% (${spent.toFixed(2)} / ${limit.toFixed(2)}).`,
+            title: `Budget khatam: ${label}`,
+            message: `Kharcha ${pct.toFixed(0)}% ho gaya (${spent.toFixed(2)} / ${limit.toFixed(2)}).`,
             is_read: false,
             created_at: new Date().toISOString(),
           });
-        } else if (pct >= 85) {
+        } else if (pct >= threshold) {
           alerts.push({
-            id: `budget-warn-${b.id}`,
+            id: `budget-warn-${b.id}-${periodTag}`,
             type: 'budget_warning',
-            title: `Budget Warning: ${b.name || 'Category'}`,
-            message: `Spending reached ${pct.toFixed(0)}% of envelope limit.`,
+            title: `Budget ${threshold}% par: ${label}`,
+            message: `Kharcha ${pct.toFixed(0)}% tak pahunch gaya (${spent.toFixed(2)} / ${limit.toFixed(2)}).`,
             is_read: false,
             created_at: new Date().toISOString(),
           });
@@ -171,27 +181,96 @@ export function NotificationProvider({ children }) {
       }
     });
 
-    // Check recurring due within 3 days
-    const now = new Date();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const dayDiff = (iso) => {
+      const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
+      return Math.round((new Date(y, m - 1, d) - startOfToday) / 86400000);
+    };
+
+    // Recurring bills (honour each bill's own reminder window, default 3 days)
     recurringProfiles.forEach((r) => {
       if (r.next_due_date && r.active !== false && r.is_active !== false) {
-        const dueDate = new Date(r.next_due_date);
-        const diffDays = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
-        if (diffDays >= 0 && diffDays <= 3) {
+        const diffDays = dayDiff(r.next_due_date);
+        const window = Number(r.reminder_days_before) >= 0 && r.reminder_days_before != null ? Number(r.reminder_days_before) : 3;
+        if (diffDays >= 0 && diffDays <= Math.max(window, 1)) {
           alerts.push({
-            id: `bill-due-${r.id}`,
+            id: `bill-due-${r.id}-${r.next_due_date}`,
             type: 'bill_due',
-            title: `Upcoming ${r.type === 'income' ? 'Income' : 'Bill'}: ${r.title}`,
-            message: `Due in ${diffDays === 0 ? 'today' : `${diffDays} day(s)`} for amount ${r.amount}.`,
+            title: `${r.type === 'income' ? 'Income' : 'Bill'} aane wala hai: ${r.title}`,
+            message: `${diffDays === 0 ? 'Aaj' : `${diffDays} din mein`} due hai, amount ${r.amount}.`,
+            is_read: false,
+            created_at: new Date().toISOString(),
+          });
+        } else if (diffDays < 0 && diffDays >= -7 && r.type !== 'income') {
+          alerts.push({
+            id: `bill-overdue-${r.id}-${r.next_due_date}`,
+            type: 'bill_due',
+            title: `Bill late: ${r.title}`,
+            message: `${Math.abs(diffDays)} din pehle due tha, amount ${r.amount}.`,
             is_read: false,
             created_at: new Date().toISOString(),
           });
         }
       }
+    });
+
+    // Loans / udhaar
+    debts.forEach((d) => {
+      if (!d.due_date || d.status === 'settled' || d.status === 'written_off') return;
+      const rem = parseFloat(d.remaining_amount || 0);
+      if (rem <= 0) return;
+      const diffDays = dayDiff(d.due_date);
+      if (diffDays > 3) return;
+      const who = contacts.find((c) => c.id === d.contact_id)?.name || 'Contact';
+      const lent = d.direction === 'lent';
+      const when = diffDays < 0 ? `${Math.abs(diffDays)} din se late hai` : diffDays === 0 ? 'aaj due hai' : `${diffDays} din mein due hai`;
+      alerts.push({
+        id: `debt-due-${d.id}-${d.due_date}`,
+        type: 'debt_due',
+        title: lent ? `Udhaar wapsi: ${who}` : `Udhaar dena hai: ${who}`,
+        message: `${rem.toFixed(2)} ${d.currency || ''} ${when}.`,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
     });
 
     return alerts;
-  }, [budgets, recurringProfiles]);
+  }, [budgets, recurringProfiles, debts, contacts]);
+
+  // Android phone notifications (no-op in the browser)
+  useEffect(() => {
+    if (!isRealWorkspace) return;
+    const items = [];
+    recurringProfiles.forEach((r) => {
+      if (!r.next_due_date || r.active === false || r.is_active === false) return;
+      const before = Number(r.reminder_days_before) > 0 ? Number(r.reminder_days_before) : 1;
+      items.push({
+        key: `bill:${r.id}:${r.next_due_date}`,
+        title: `${r.type === 'income' ? 'Income' : 'Bill'}: ${r.title}`,
+        body: `Aaj due hai — ${r.amount}`,
+        dueDate: r.next_due_date,
+        daysBefore: [0, before],
+      });
+    });
+    debts.forEach((d) => {
+      if (!d.due_date || d.status === 'settled' || d.status === 'written_off') return;
+      const rem = parseFloat(d.remaining_amount || 0);
+      if (rem <= 0) return;
+      const who = contacts.find((c) => c.id === d.contact_id)?.name || 'Contact';
+      items.push({
+        key: `debt:${d.id}:${d.due_date}`,
+        title: d.direction === 'lent' ? `Udhaar wapsi: ${who}` : `Udhaar dena hai: ${who}`,
+        body: `Aaj due hai — ${rem.toFixed(2)} ${d.currency || ''}`,
+        dueDate: d.due_date,
+        daysBefore: [0, 2],
+      });
+    });
+    const budgetAlerts = syntheticAlerts
+      .filter((a) => a.type === 'budget_warning' || a.type === 'budget_exceeded')
+      .map((a) => ({ key: a.id, title: a.title, body: a.message }));
+    syncLocalReminders({ items, budgetAlerts });
+  }, [isRealWorkspace, recurringProfiles, debts, contacts, syntheticAlerts]);
 
   const allNotifications = useMemo(() => {
     const combined = [...notifications];

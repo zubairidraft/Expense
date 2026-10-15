@@ -1,6 +1,12 @@
 import { useState, useMemo, useEffect, lazy, Suspense } from 'react'
 import { useAuth } from './context/AuthContext'
 import { useAccounts } from './context/AccountContext'
+import { useTransactions } from './context/TransactionContext'
+import { useCategories } from './context/CategoryContext'
+import usePullToRefresh from './hooks/usePullToRefresh'
+import useNativeShell from './hooks/useNativeShell'
+import useWidgetSync from './hooks/useWidgetSync'
+import { useWorkspace } from './context/WorkspaceContext'
 import Navbar from './components/layout/Navbar'
 import Sidebar from './components/layout/Sidebar'
 import MobileNav from './components/layout/MobileNav'
@@ -59,7 +65,16 @@ const Agentation = import.meta.env.DEV
 
 export default function App() {
   const { user, profile } = useAuth()
-  const { accounts } = useAccounts()
+  const { accounts, refreshAccounts, netWorth } = useAccounts()
+  const { currentWorkspace: widgetWorkspace } = useWorkspace()
+  useWidgetSync({
+    netWorth,
+    currency: widgetWorkspace?.base_currency,
+    label: widgetWorkspace?.name ? `${widgetWorkspace.name} · Net balance` : 'Net balance',
+    enabled: !!user,
+  })
+  const { refreshTransactions } = useTransactions()
+  const { refreshCatalog } = useCategories()
 
   // App Shell Navigation State
   const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'transactions' | 'accounts' | 'categories' | 'budgets' | 'analytics' | 'settings'
@@ -176,8 +191,90 @@ export default function App() {
     setMobileNavOpen(false)
   }
 
+
+  // Android back button + app-shortcut deep link
+  const closers = [
+    { open: authModalOpen, close: () => setAuthModalOpen(false) },
+    { open: transferModalOpen, close: () => { setTransferModalOpen(false); setTransferInitialData(null) } },
+    { open: receiptModalOpen, close: () => { setReceiptModalOpen(false); setReceiptTxTargetId(null) } },
+    { open: createTxModalOpen, close: () => { setCreateTxModalOpen(false); setReceiptDraftData(null) } },
+    { open: quickAddModalOpen, close: () => setQuickAddModalOpen(false) },
+    { open: createContactModalOpen, close: () => setCreateContactModalOpen(false) },
+    { open: recordDebtPaymentModalOpen, close: () => { setRecordDebtPaymentModalOpen(false); setSelectedDebtForPayment(null) } },
+    { open: allocateGoalModalOpen, close: () => { setAllocateGoalModalOpen(false); setSelectedGoalForAlloc(null) } },
+    { open: createSharedExpenseModalOpen, close: () => setCreateSharedExpenseModalOpen(false) },
+    { open: createDebtModalOpen, close: () => setCreateDebtModalOpen(false) },
+    { open: createInstallmentModalOpen, close: () => setCreateInstallmentModalOpen(false) },
+    { open: createProjectModalOpen, close: () => setCreateProjectModalOpen(false) },
+    { open: createCostCenterModalOpen, close: () => setCreateCostCenterModalOpen(false) },
+    { open: createRecurringModalOpen, close: () => setCreateRecurringModalOpen(false) },
+    { open: createBudgetModalOpen, close: () => setCreateBudgetModalOpen(false) },
+    { open: createGoalModalOpen, close: () => setCreateGoalModalOpen(false) },
+    { open: createAccountModalOpen, close: () => setCreateAccountModalOpen(false) },
+    { open: createCategoryModalOpen, close: () => setCreateCategoryModalOpen(false) },
+    { open: createMerchantModalOpen, close: () => setCreateMerchantModalOpen(false) },
+    { open: createTagModalOpen, close: () => setCreateTagModalOpen(false) },
+    { open: reconcileModalOpen, close: () => setReconcileModalOpen(false) },
+    { open: rulesModalOpen, close: () => setRulesModalOpen(false) },
+    { open: currencyConverterModalOpen, close: () => setCurrencyConverterModalOpen(false) },
+    { open: importExportModalOpen, close: () => setImportExportModalOpen(false) },
+    { open: zakatModalOpen, close: () => setZakatModalOpen(false) },
+    { open: notificationsModalOpen, close: () => setNotificationsModalOpen(false) },
+    { open: appearanceModalOpen, close: () => setAppearanceModalOpen(false) },
+    { open: settingsModalOpen, close: () => setSettingsModalOpen(false) },
+    { open: createWsModalOpen, close: () => setCreateWsModalOpen(false) },
+    { open: membersWsModalOpen, close: () => setMembersWsModalOpen(false) },
+    { open: onboardingModalOpen && !isMandatoryOnboarding, close: () => setOnboardingModalOpen(false) },
+    { open: mobileNavOpen, close: () => setMobileNavOpen(false) },
+  ]
+  useNativeShell({
+    layers: closers,
+    canGoHome: activeTab !== 'overview',
+    goHome: () => setActiveTab('overview'),
+    onQuickAdd: () => setQuickAddModalOpen(true),
+  })
+
+  // Web / PWA shortcut: /?quick=1 opens Quick Add
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('quick') === '1') {
+        setQuickAddModalOpen(true)
+        params.delete('quick')
+        const qs = params.toString()
+        window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash)
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  // Pull to refresh (touch devices)
+  const { pull, refreshing } = usePullToRefresh(async () => {
+    await Promise.all([
+      refreshTransactions?.(),
+      refreshAccounts?.(),
+      refreshCatalog?.(),
+    ])
+  })
+
   return (
     <div className="app-shell">
+      {(pull > 0 || refreshing) && (
+        <div
+          aria-live="polite"
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+            display: 'flex', justifyContent: 'center', pointerEvents: 'none',
+            transform: `translateY(${Math.max(0, pull - 28)}px)`,
+            transition: refreshing ? 'transform 0.2s' : 'none',
+          }}
+        >
+          <div style={{ background: 'var(--md-surface-container, #1f2937)', color: 'var(--md-on-surface, #fff)', borderRadius: '9999px', padding: '0.4rem 0.9rem', fontSize: '0.8rem', boxShadow: '0 4px 14px rgba(0,0,0,0.35)' }}>
+            {refreshing ? 'Refresh ho raha hai…' : pull >= 48 ? 'Chhodo, refresh hoga' : 'Neeche kheencho'}
+          </div>
+        </div>
+      )}
       {/* Visual Annotation Toolbar for AI Agents (development only) */}
       {Agentation && (
         <Suspense fallback={null}>

@@ -4,4 +4,9 @@
     <string name="title_activity_main">Next Expenses</string>
     <string name="package_name">com.expensetracking.app</string>
     <string name="custom_url_scheme">com.expensetracking.app</string>
+    <string name="shortcut_quick_add_short">Quick Add</string>
+    <string name="shortcut_quick_add_long">Naya kharcha likho</string>
+    <string name="widget_default_label">Net balance</string>
+    <string name="widget_quick_add">+ Add</string>
+    <string name="widget_description">Balance dekho aur Quick Add kholo</string>
 </resources>

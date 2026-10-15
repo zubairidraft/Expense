@@ -1,5 +1,6 @@
 import { useTransactions } from '../../context/TransactionContext';
 import { useAttachments } from '../../context/AttachmentContext';
+import { useToast } from '../../context/ToastContext';
 import MoneyDisplay from '../ui/MoneyDisplay';
 
 export default function TransactionDrawer({
@@ -9,20 +10,41 @@ export default function TransactionDrawer({
   onOpenAttachReceipt,
   onEditTransfer,
 }) {
-  const { deleteTransaction, updateStatus } = useTransactions();
+  const { deleteTransaction, updateStatus, restoreTransaction } = useTransactions();
+  const { showToast } = useToast();
   const { getAttachmentsForTransaction } = useAttachments();
 
   if (!isOpen || !transaction) return null;
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this transaction from the ledger?')) {
-      deleteTransaction(transaction.id);
-      onClose();
-    }
+    const tx = transaction;
+    deleteTransaction(tx.id).then((res) => {
+      if (!res?.error) {
+        showToast({
+          message: `“${tx.payee_name || tx.type}” delete ho gaya`,
+          actionLabel: 'Undo',
+          onAction: () => restoreTransaction(tx.id, tx),
+          duration: 5000,
+        });
+      }
+    });
+    onClose();
   };
 
   const handleStatusChange = (newStatus) => {
-    updateStatus(transaction.id, newStatus);
+    const tx = transaction;
+    const previous = tx.status;
+    if (previous === newStatus) return;
+    updateStatus(tx.id, newStatus).then((res) => {
+      if (!res?.error) {
+        showToast({
+          message: `Status ab "${newStatus}" hai`,
+          actionLabel: 'Undo',
+          onAction: () => updateStatus(tx.id, previous),
+          duration: 5000,
+        });
+      }
+    });
   };
 
   const lines = transaction.lines || [];

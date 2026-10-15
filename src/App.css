@@ -2992,3 +2992,43 @@
 
 
 
+
+
+/* ===== Mobile bottom-sheet modals ===== */
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .modal-content,
+  .modal-card {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    max-height: 92dvh;
+    border-radius: 22px 22px 0 0;
+    border-bottom: none;
+    padding: 1.25rem 1.1rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    animation: sheetUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+
+  /* grab handle */
+  .modal-content::before,
+  .modal-card::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    border-radius: 9999px;
+    background: rgba(var(--md-on-surface-rgb), 0.28);
+    margin: -0.5rem auto 0.9rem;
+  }
+}

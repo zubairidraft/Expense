@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { readCache, writeCache } from '../lib/offlineCache';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useWorkspace } from './WorkspaceContext';
@@ -194,7 +195,13 @@ export function CategoryProvider({ children }) {
     }
 
     try {
-      setLoading(true);
+      const cached = readCache('catalog', user.id, currentWorkspace.id);
+      if (cached) {
+        setCategories(cached.categories || []);
+        setTags(cached.tags || []);
+        setMerchants(cached.merchants || []);
+      }
+      setLoading(!cached);
       setError(null);
 
       // Fetch Categories (System-wide templates with NULL workspace_id OR workspace-scoped custom ones)
@@ -228,12 +235,22 @@ export function CategoryProvider({ children }) {
       setCategories(catData || []);
       setTags(tagData || []);
       setMerchants(merchData || []);
+      writeCache('catalog', user.id, currentWorkspace.id, {
+        categories: catData || [], tags: tagData || [], merchants: merchData || [],
+      });
     } catch (err) {
       console.warn('[CategoryContext] Error fetching catalog:', err.message);
-      setError(err.message);
-      setCategories([]);
-      setTags([]);
-      setMerchants([]);
+      const cached = readCache('catalog', user.id, currentWorkspace.id);
+      if (cached) {
+        setCategories(cached.categories || []);
+        setTags(cached.tags || []);
+        setMerchants(cached.merchants || []);
+      } else {
+        setError(err.message);
+        setCategories([]);
+        setTags([]);
+        setMerchants([]);
+      }
     } finally {
       setLoading(false);
     }

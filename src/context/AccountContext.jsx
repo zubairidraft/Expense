@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { readCache, writeCache } from '../lib/offlineCache';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useWorkspace } from './WorkspaceContext';
@@ -140,7 +141,13 @@ export function AccountProvider({ children }) {
     }
 
     try {
-      setLoading(true);
+      // Show last known data instantly (works offline too)
+      const cached = readCache('accounts', user.id, currentWorkspace.id);
+      if (cached) {
+        setAccounts(cached.accounts || []);
+        setAccountShares(cached.shares || []);
+      }
+      setLoading(!cached);
       setError(null);
 
       // Fetch unified balances view and shares overview in parallel
@@ -225,10 +232,18 @@ export function AccountProvider({ children }) {
       });
 
       setAccounts(formatted);
+      writeCache('accounts', user.id, currentWorkspace.id, { accounts: formatted, shares: shareRows || [] });
     } catch (err) {
       console.warn('[AccountContext] Error fetching accounts:', err.message);
-      setError(err.message);
-      setAccounts([]);
+      const cached = readCache('accounts', user.id, currentWorkspace.id);
+      if (cached) {
+        // Offline / server problem: keep showing the last known accounts
+        setAccounts(cached.accounts || []);
+        setAccountShares(cached.shares || []);
+      } else {
+        setError(err.message);
+        setAccounts([]);
+      }
     } finally {
       setLoading(false);
     }

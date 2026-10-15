@@ -4,6 +4,8 @@ import { useWorkspace } from '../../context/WorkspaceContext';
 import { CURRENCY_REGISTRY } from '../../lib/formatters';
 import { todayISO } from '../../lib/dates';
 import AppearancePanel from './AppearancePanel';
+import ReminderSettings from './ReminderSettings';
+import BackupPanel from './BackupPanel';
 
 export default function PreferencesView() {
   const { user, profile, updateProfile, signOut } = useAuth();
@@ -165,17 +167,6 @@ export default function PreferencesView() {
     const res = await removeMember(currentWorkspace?.id, memberId);
     if (res?.error) showMemberMsg(res.error.message, 'error');
     else showMemberMsg('Member removed successfully.');
-  };
-
-  const handleExportData = () => {
-    const rawTx = localStorage.getItem('expense_pro_transactions') || '[]';
-    const blob = new Blob([rawTx], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `expense_tracker_backup_${todayISO()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   return (
@@ -435,6 +426,7 @@ export default function PreferencesView() {
               </button>
             </div>
           </form>
+          <ReminderSettings />
         </div>
       )}
 
@@ -772,23 +764,8 @@ export default function PreferencesView() {
             </p>
           </div>
 
+          <BackupPanel />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-            <div style={{ padding: '1.5rem', borderRadius: '12px', background: 'var(--bg-main, rgba(0,0,0,0.15))', border: '1px solid var(--border-color, rgba(var(--md-on-surface-rgb), 0.08))' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📥</div>
-              <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>Full JSON Ledger Export</h4>
-              <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                Download all accounts, transactions, splits, and categories in standard JSON format for offsite backup.
-              </p>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleExportData}
-                style={{ width: '100%' }}
-              >
-                Download JSON Backup
-              </button>
-            </div>
-
             <div style={{ padding: '1.5rem', borderRadius: '12px', background: 'var(--bg-main, rgba(0,0,0,0.15))', border: '1px solid var(--border-color, rgba(var(--md-on-surface-rgb), 0.08))' }}>
               <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📊</div>
               <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>Local Storage Health</h4>

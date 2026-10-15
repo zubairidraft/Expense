@@ -18,6 +18,7 @@ import { BusinessProvider } from './context/BusinessContext'
 import { CurrencyProvider } from './context/CurrencyContext'
 import { AnalyticsProvider } from './context/AnalyticsContext'
 import { NotificationProvider } from './context/NotificationContext'
+import { ToastProvider } from './context/ToastContext'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 
 createRoot(document.getElementById('root')).render(
@@ -39,7 +40,9 @@ createRoot(document.getElementById('root')).render(
                             <CurrencyProvider>
                               <AnalyticsProvider>
                                 <NotificationProvider>
-                                  <App />
+                                  <ToastProvider>
+                                    <App />
+                                  </ToastProvider>
                                 </NotificationProvider>
                               </AnalyticsProvider>
                             </CurrencyProvider>
