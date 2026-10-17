@@ -42,7 +42,7 @@ export default function ReminderSettings() {
     if (on) {
       const ok = await ensureReminderPermission();
       if (!ok) {
-        setMsg('Phone settings mein jaa kar app ki notifications allow karo.');
+        setMsg('Please enable notification permissions in your phone settings.');
         return;
       }
     }
@@ -56,7 +56,7 @@ export default function ReminderSettings() {
     const { error } = await supabase.from('profiles').update({ email_reminders: on }).eq('id', user.id);
     if (error) {
       setEmailOn(!on);
-      setMsg('Email reminder setting save nahi hui. Pehle reminders migration run karni hogi.');
+      setMsg('Could not save email reminder preference. Database migration pending.');
     }
   };
 
@@ -66,7 +66,7 @@ export default function ReminderSettings() {
     <div className="card glass-card" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
       <h3 style={{ margin: 0 }}>🔔 Reminders</h3>
       <p style={{ opacity: 0.75, fontSize: '0.88rem', margin: '0.35rem 0 0.75rem' }}>
-        Bill due, budget limit (80%) aur udhaar wapsi ka din — yaad dilane ke liye.
+        Timely alerts for due bills, budget limits (80%), and loan settlement dates.
       </p>
 
       <label style={row}>
@@ -74,7 +74,7 @@ export default function ReminderSettings() {
           <strong>Phone notifications</strong>
           <br />
           <small style={{ opacity: 0.7 }}>
-            {native ? 'Is device par subah 9 baje reminder.' : 'Sirf Android app mein kaam karta hai.'}
+            {native ? 'Daily reminder at 9:00 AM on this device.' : 'Supported on the Android app.'}
           </small>
         </span>
         <input type="checkbox" checked={phoneOn && native} disabled={!native} onChange={(e) => togglePhone(e.target.checked)} />
@@ -85,7 +85,7 @@ export default function ReminderSettings() {
           <strong>Email reminders</strong>
           <br />
           <small style={{ opacity: 0.7 }}>
-            {user ? `Roz subah ek email ${user.email} par.` : 'Login karne par available.'}
+            {user ? `Daily morning email summary to ${user.email}.` : 'Available once signed in.'}
           </small>
         </span>
         <input
@@ -98,7 +98,7 @@ export default function ReminderSettings() {
 
       {!emailSupported && (
         <p style={{ fontSize: '0.8rem', opacity: 0.75, marginBottom: 0 }}>
-          Email reminders abhi setup nahi hain (database migration baaki hai).
+          Email reminders are not configured yet (database migration pending).
         </p>
       )}
       {msg && <p role="alert" style={{ fontSize: '0.82rem', color: '#d97706', marginBottom: 0 }}>{msg}</p>}

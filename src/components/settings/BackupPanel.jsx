@@ -20,7 +20,7 @@ export default function BackupPanel() {
   const exportAs = (kind) => run(kind, async () => {
     const b = await buildBackup(currentWorkspace);
     if (kind === 'json') downloadBackupJson(b); else await downloadBackupXlsx(b);
-    setMsg({ text: `Backup ban gaya: ${b.transactions.length} transactions, ${b.accounts.length} accounts.` });
+    setMsg({ text: `Backup created: ${b.transactions.length} transactions, ${b.accounts.length} accounts.` });
   });
 
   const onFile = (e) => {
@@ -30,9 +30,9 @@ export default function BackupPanel() {
     run('restore', async () => {
       const backup = JSON.parse(await file.text());
       const n = backup?.transactions?.length ?? 0;
-      if (!window.confirm(`"${currentWorkspace?.name}" mein ${n} transactions wapas laye jayen? Jo accounts/categories pehle se hain woh dobara nahi banenge.`)) return;
+      if (!window.confirm(`Restore ${n} transactions into "${currentWorkspace?.name}"? Existing accounts and categories will not be duplicated.`)) return;
       const r = await restoreBackup(backup, currentWorkspace.id, user.id, (t) => setBusy(t));
-      setMsg({ text: `Restore ho gaya: ${r.transactions} transactions, ${r.accounts} naye accounts, ${r.categories} categories. ${r.skipped ? `${r.skipped} skip (pehle se maujood ya account missing).` : ''} App refresh karo.` });
+      setMsg({ text: `Restore complete: ${r.transactions} transactions, ${r.accounts} new accounts, ${r.categories} categories. ${r.skipped ? `${r.skipped} skipped (already exists or missing account).` : ''} Please refresh the app.` });
     });
   };
 
@@ -40,23 +40,23 @@ export default function BackupPanel() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
       <div style={box}>
-        <h4 style={{ margin: '0 0 .5rem' }}>📥 Poora backup (is workspace ka)</h4>
+        <h4 style={{ margin: '0 0 .5rem' }}>📥 Full Backup (This Workspace)</h4>
         <p style={{ margin: '0 0 1rem', fontSize: '.85rem', color: 'var(--text-secondary)' }}>
-          Accounts, categories, merchants, tags, budgets aur saari transactions. JSON se wapas restore ho sakta hai; Excel dekhne/share ke liye hai.
+          Accounts, categories, merchants, tags, budgets, and all ledger transactions. JSON backups can be restored; Excel is formatted for viewing and sharing.
         </p>
         <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
-          <button type="button" className="btn-primary" disabled={!!busy} onClick={() => exportAs('json')}>{busy === 'json' ? 'Ban raha hai…' : 'JSON backup'}</button>
-          <button type="button" className="btn-secondary" disabled={!!busy} onClick={() => exportAs('xlsx')}>{busy === 'xlsx' ? 'Ban raha hai…' : 'Excel backup'}</button>
+          <button type="button" className="btn-primary" disabled={!!busy} onClick={() => exportAs('json')}>{busy === 'json' ? 'Generating…' : 'JSON Backup'}</button>
+          <button type="button" className="btn-secondary" disabled={!!busy} onClick={() => exportAs('xlsx')}>{busy === 'xlsx' ? 'Generating…' : 'Excel Backup'}</button>
         </div>
       </div>
       <div style={box}>
-        <h4 style={{ margin: '0 0 .5rem' }}>📤 Backup se restore</h4>
+        <h4 style={{ margin: '0 0 .5rem' }}>📤 Restore from Backup</h4>
         <p style={{ margin: '0 0 1rem', fontSize: '.85rem', color: 'var(--text-secondary)' }}>
-          JSON backup file chunein. Duplicate nahi bante: same naam ke accounts/categories reuse hote hain, aur dobara restore karne par transactions double nahi hoti.
+          Select a JSON backup file. No duplicates will be created: accounts and categories with matching names are reused, and transactions are deduplicated.
         </p>
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={onFile} />
         <button type="button" className="btn-secondary" disabled={!!busy} onClick={() => fileRef.current?.click()}>
-          {busy && busy !== 'json' && busy !== 'xlsx' ? busy : 'JSON file chunein'}
+          {busy && busy !== 'json' && busy !== 'xlsx' ? busy : 'Select JSON File'}
         </button>
       </div>
       {msg && (

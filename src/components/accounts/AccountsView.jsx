@@ -243,7 +243,7 @@ export default function AccountsView({ onOpenCreateAccount, onOpenTransfer, onEd
                         if (acc.is_shared) return;
                         handleDelete(e, acc.id, acc.name);
                       }}
-                      title={acc.is_shared ? "Sirf home workspace se archive ho sakta hai" : "Archive Account"}
+                      title={acc.is_shared ? "Can only be archived from the home workspace" : "Archive Account"}
                       style={acc.is_shared ? { opacity: 0.35, cursor: 'not-allowed' } : undefined}
                     >
                       🗑️

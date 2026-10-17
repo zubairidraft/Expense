@@ -253,7 +253,7 @@ export default function ZakatCalculatorModal({ isOpen, onClose }) {
             />
           </div>
           <div>
-            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Lent Udhaar (Expected Recoveries):</label>
+            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Lent Funds (Expected Loan Recoveries):</label>
             <input
               type="number"
               className="input-field"
@@ -270,7 +270,7 @@ export default function ZakatCalculatorModal({ isOpen, onClose }) {
         </h4>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
           <div>
-            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Immediate Debts Due (Udhaar Owed):</label>
+            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Immediate Debts Due (Loans Owed to Others):</label>
             <input
               type="number"
               className="input-field"

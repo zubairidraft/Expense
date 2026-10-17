@@ -71,14 +71,14 @@ export default function MonthlySummaryCard() {
 
   const text = useMemo(() => {
     const lines = [
-      `📊 *${label} ka hisaab*`,
+      `📊 *${label} Summary*`,
       '',
-      `💸 Kharcha: ${money(current.expense)}`,
+      `💸 Expense: ${money(current.expense)}`,
       `💰 Income: ${money(current.income)}`,
-      `${current.saved >= 0 ? '🟢 Bacha' : '🔴 Zyada kharch'}: ${money(Math.abs(current.saved))}`,
+      `${current.saved >= 0 ? '🟢 Net Savings' : '🔴 Net Deficit'}: ${money(Math.abs(current.saved))}`,
     ];
-    if (top) lines.push(`🏆 Sabse zyada: ${top.icon ? `${top.icon} ` : ''}${top.name} (${money(top.total)})`);
-    if (change !== null) lines.push(`${change > 0 ? '📈' : '📉'} Pichle mahine se kharcha ${Math.abs(change)}% ${change > 0 ? 'zyada' : 'kam'}`);
+    if (top) lines.push(`🏆 Top Category: ${top.icon ? `${top.icon} ` : ''}${top.name} (${money(top.total)})`);
+    if (change !== null) lines.push(`${change > 0 ? '📈' : '📉'} Expenses are ${Math.abs(change)}% ${change > 0 ? 'higher' : 'lower'} than previous month`);
     lines.push('', `— Next Expenses`);
     return lines.join('\n');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,9 +103,9 @@ export default function MonthlySummaryCard() {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text);
-      showToast({ message: 'Summary copy ho gayi', duration: 2500 });
+      showToast({ message: 'Summary copied to clipboard', duration: 2500 });
     } catch {
-      showToast({ message: 'Copy nahi ho saka', tone: 'error', duration: 2500 });
+      showToast({ message: 'Failed to copy summary', tone: 'error', duration: 2500 });
     }
   };
 
@@ -125,25 +125,25 @@ export default function MonthlySummaryCard() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
         <h3 style={{ margin: 0 }}>📊 {label}</h3>
         <div style={{ display: 'flex', gap: '0.4rem' }}>
-          <button type="button" style={pill(which === 'this')} onClick={() => setWhich('this')}>Is mahine</button>
-          <button type="button" style={pill(which === 'last')} onClick={() => setWhich('last')}>Pichle mahine</button>
+          <button type="button" style={pill(which === 'this')} onClick={() => setWhich('this')}>This Month</button>
+          <button type="button" style={pill(which === 'last')} onClick={() => setWhich('last')}>Last Month</button>
         </div>
       </div>
 
       {empty ? (
-        <p style={{ opacity: 0.7, margin: '0.9rem 0 0' }}>Is mahine abhi koi entry nahi hai.</p>
+        <p style={{ opacity: 0.7, margin: '0.9rem 0 0' }}>No transactions recorded for this period yet.</p>
       ) : (
         <>
           <p style={{ fontSize: '1.05rem', lineHeight: 1.6, margin: '0.9rem 0 0.4rem' }}>
-            Is mahine kharcha <b>{money(current.expense)}</b>,{' '}
-            {current.saved >= 0 ? <>bacha <b style={{ color: '#16a34a' }}>{money(current.saved)}</b></> : <>aamdani se <b style={{ color: '#dc2626' }}>{money(-current.saved)}</b> zyada kharch hua</>}
-            {top && <>, sabse zyada <b>{top.icon ? `${top.icon} ` : ''}{top.name}</b> par ({money(top.total)}).</>}
+            {which === 'this' ? 'This month' : 'Last month'}, total spending is <b>{money(current.expense)}</b>,{' '}
+            {current.saved >= 0 ? <>saved <b style={{ color: '#16a34a' }}>{money(current.saved)}</b></> : <>exceeded income by <b style={{ color: '#dc2626' }}>{money(-current.saved)}</b></>}
+            {top && <>, top expense in <b>{top.icon ? `${top.icon} ` : ''}{top.name}</b> ({money(top.total)}).</>}
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem', fontSize: '0.85rem', opacity: 0.85 }}>
             <span>💰 Income: {money(current.income)}</span>
             <span>🧾 {current.count} entries</span>
-            {current.biggest && <span>🔝 Sabse bada: {current.biggest.name} ({money(current.biggest.amount)})</span>}
-            {change !== null && <span>{change > 0 ? '📈' : '📉'} Pichle mahine se {Math.abs(change)}% {change > 0 ? 'zyada' : 'kam'}</span>}
+            {current.biggest && <span>🔝 Largest: {current.biggest.name} ({money(current.biggest.amount)})</span>}
+            {change !== null && <span>{change > 0 ? '📈' : '📉'} {Math.abs(change)}% {change > 0 ? 'higher' : 'lower'} than previous month</span>}
           </div>
           {current.top.length > 1 && (
             <div style={{ marginTop: '0.8rem', display: 'grid', gap: '0.35rem' }}>
@@ -161,7 +161,7 @@ export default function MonthlySummaryCard() {
             </div>
           )}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
-            <button type="button" className="submit-btn" style={{ width: 'auto', padding: '0.5rem 0.9rem' }} onClick={shareWhatsApp}>📲 WhatsApp par bhejo</button>
+            <button type="button" className="submit-btn" style={{ width: 'auto', padding: '0.5rem 0.9rem' }} onClick={shareWhatsApp}>📲 Share via WhatsApp</button>
             <button type="button" className="secondary-btn" style={{ padding: '0.5rem 0.9rem' }} onClick={shareNative}>↗ Share</button>
             <button type="button" className="secondary-btn" style={{ padding: '0.5rem 0.9rem' }} onClick={copy}>📋 Copy</button>
           </div>

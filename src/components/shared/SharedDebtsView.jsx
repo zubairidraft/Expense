@@ -56,7 +56,7 @@ export default function SharedDebtsView({
       {/* Overview Stat Cards */}
       <div className="stats-grid">
         <StatCard
-          label="You Are Owed (Lent / Udhaar)"
+          label="You Are Owed (Lent / Receivables)"
           amount={totalLent}
           type="income"
           icon="🤝"
@@ -185,7 +185,7 @@ export default function SharedDebtsView({
                 fontWeight: 500,
               }}
             >
-              📜 Personal Debts / Udhaar ({debts.length})
+              📜 Personal Debts & Loans ({debts.length})
             </button>
             <button
               type="button"
@@ -231,7 +231,7 @@ export default function SharedDebtsView({
             )}
             {activeTab === 'debts' && (
               <button type="button" className="btn-primary" onClick={onOpenCreateDebt}>
-                + Record Udhaar / Debt
+                + Record Debt / Loan
               </button>
             )}
             {activeTab === 'installments' && (
@@ -363,14 +363,14 @@ export default function SharedDebtsView({
           </div>
         )}
 
-        {/* Tab 2: Personal Debts (Udhaar) */}
+        {/* Tab 2: Personal Debts & Loans */}
         {activeTab === 'debts' && (
           <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {debts.length === 0 ? (
               <div className="empty-state">
                 <span className="empty-icon">📜</span>
                 <h3>No Personal Debts Recorded</h3>
-                <p>Track informal loans (Udhaar), friendly lending, and emergency borrowings with due dates.</p>
+                <p>Track informal loans, friendly lending, and emergency borrowings with due dates.</p>
                 <button type="button" className="btn-primary" onClick={onOpenCreateDebt}>
                   Record First Debt
                 </button>

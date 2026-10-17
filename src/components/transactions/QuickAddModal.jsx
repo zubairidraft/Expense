@@ -26,6 +26,7 @@ export default function QuickAddModal({ isOpen, onClose, onOpenTransfer }) {
   const amountInputRef = useRef(null);
 
   const [type, setType] = useState('expense'); // 'expense' | 'income' | 'transfer'
+  const [date, setDate] = useState(todayISO());
   const [amount, setAmount] = useState('');
   const [payee, setPayee] = useState('');
   const [accountId, setAccountId] = useState('');
@@ -43,6 +44,7 @@ export default function QuickAddModal({ isOpen, onClose, onOpenTransfer }) {
   useEffect(() => {
     if (isOpen) {
       setSuccessToast('');
+      setDate(todayISO());
       setTimeout(() => {
         amountInputRef.current?.focus();
       }, 50);
@@ -139,7 +141,7 @@ export default function QuickAddModal({ isOpen, onClose, onOpenTransfer }) {
       const res = await addTransaction({
         type: 'transfer',
         payeeName: payee.trim() || `${fromAcc.name} ➔ ${toAcc.name}`,
-        date: todayISO(),
+        date: date || todayISO(),
         status: 'cleared',
         source: 'manual',
         lines: [
@@ -171,6 +173,7 @@ export default function QuickAddModal({ isOpen, onClose, onOpenTransfer }) {
       setTimeout(() => {
         setAmount('');
         setPayee('');
+        setDate(todayISO());
         onClose();
       }, 600);
       return;
@@ -193,7 +196,7 @@ export default function QuickAddModal({ isOpen, onClose, onOpenTransfer }) {
     const res = await addTransaction({
       type,
       payeeName: payee.trim() || (type === 'income' ? 'Quick Income' : 'Quick Expense'),
-      date: todayISO(),
+      date: date || todayISO(),
       status: 'cleared',
       source: 'manual',
       lines: [
@@ -225,6 +228,7 @@ export default function QuickAddModal({ isOpen, onClose, onOpenTransfer }) {
     setTimeout(() => {
       setAmount('');
       setPayee('');
+      setDate(todayISO());
       onClose();
     }, 600);
   };
@@ -321,39 +325,60 @@ export default function QuickAddModal({ isOpen, onClose, onOpenTransfer }) {
             />
           </div>
 
-          {/* Type Toggle & Payee */}
+          {/* Type Toggle */}
+          <div className="type-selector" style={{ marginBottom: '0.75rem' }}>
+            <button
+              type="button"
+              className={`type-btn expense ${type === 'expense' ? 'active' : ''}`}
+              onClick={() => setType('expense')}
+            >
+              📉 Outflow
+            </button>
+            <button
+              type="button"
+              className={`type-btn income ${type === 'income' ? 'active' : ''}`}
+              onClick={() => setType('income')}
+            >
+              📈 Inflow
+            </button>
+            <button
+              type="button"
+              className={`type-btn transfer ${type === 'transfer' ? 'active' : ''}`}
+              onClick={() => setType('transfer')}
+            >
+              ⇄ Transfer
+            </button>
+          </div>
+
+          {/* Date & Payee */}
           <div className="form-row-2">
-            <div className="type-selector" style={{ marginBottom: 0 }}>
-              <button
-                type="button"
-                className={`type-btn expense ${type === 'expense' ? 'active' : ''}`}
-                onClick={() => setType('expense')}
-              >
-                📉 Outflow
-              </button>
-              <button
-                type="button"
-                className={`type-btn income ${type === 'income' ? 'active' : ''}`}
-                onClick={() => setType('income')}
-              >
-                📈 Inflow
-              </button>
-              <button
-                type="button"
-                className={`type-btn transfer ${type === 'transfer' ? 'active' : ''}`}
-                onClick={() => setType('transfer')}
-              >
-                ⇄ Transfer
-              </button>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                📅 Date
+              </label>
+              <input
+                type="date"
+                required
+                className="input-field"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                style={{ width: '100%', height: '42px' }}
+              />
             </div>
 
-            <input
-              type="text"
-              placeholder={type === 'transfer' ? 'Transfer description / remark' : 'Payee / Description (e.g. Starbucks, Uber, Metro)'}
-              className="input-field"
-              value={payee}
-              onChange={(e) => setPayee(e.target.value)}
-            />
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                {type === 'transfer' ? '📝 Transfer Note' : '🏷️ Payee / Description'}
+              </label>
+              <input
+                type="text"
+                placeholder={type === 'transfer' ? 'Transfer description / remark' : 'e.g. Starbucks, Uber, Metro, Client'}
+                className="input-field"
+                value={payee}
+                onChange={(e) => setPayee(e.target.value)}
+                style={{ width: '100%', height: '42px' }}
+              />
+            </div>
           </div>
 
           {/* Account Fast Select */}

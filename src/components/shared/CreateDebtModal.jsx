@@ -64,7 +64,7 @@ export default function CreateDebtModal({ isOpen, onClose, onOpenAddContact }) {
         <div className="modal-header">
           <div className="modal-title-wrap">
             <span className="modal-icon">{direction === 'lent' ? '🤝' : '📥'}</span>
-            <h2 className="modal-title">Record Personal Debt (Udhaar)</h2>
+            <h2 className="modal-title">Record Personal Debt / Loan</h2>
           </div>
           <button className="modal-close-btn" onClick={onClose} aria-label="Close modal">
             ✕
@@ -193,7 +193,7 @@ export default function CreateDebtModal({ isOpen, onClose, onOpenAddContact }) {
             <input
               type="text"
               className="form-input"
-              placeholder="e.g. Cash loan, emergency bridge fund, travel Udhaar"
+              placeholder="e.g. Cash loan, emergency bridge fund, travel loan"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />

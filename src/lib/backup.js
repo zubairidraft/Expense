@@ -111,7 +111,7 @@ const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o[k] !== undefin
  */
 export async function restoreBackup(backup, workspaceId, userId, onProgress = () => {}) {
   if (!backup || backup.app !== 'next-expenses' || !Array.isArray(backup.transactions)) {
-    throw new Error('Yeh Next Expenses ki backup file nahi lagti.');
+    throw new Error('Invalid backup file. This file does not appear to be a Next Expenses backup.');
   }
   const ws = workspaceId;
   const report = { accounts: 0, categories: 0, merchants: 0, tags: 0, transactions: 0, skipped: 0 };

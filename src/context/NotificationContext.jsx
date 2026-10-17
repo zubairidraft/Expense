@@ -163,8 +163,8 @@ export function NotificationProvider({ children }) {
           alerts.push({
             id: `budget-exceeded-${b.id}-${periodTag}`,
             type: 'budget_exceeded',
-            title: `Budget khatam: ${label}`,
-            message: `Kharcha ${pct.toFixed(0)}% ho gaya (${spent.toFixed(2)} / ${limit.toFixed(2)}).`,
+            title: `Budget Exceeded: ${label}`,
+            message: `Spending reached ${pct.toFixed(0)}% (${spent.toFixed(2)} / ${limit.toFixed(2)}).`,
             is_read: false,
             created_at: new Date().toISOString(),
           });
@@ -172,8 +172,8 @@ export function NotificationProvider({ children }) {
           alerts.push({
             id: `budget-warn-${b.id}-${periodTag}`,
             type: 'budget_warning',
-            title: `Budget ${threshold}% par: ${label}`,
-            message: `Kharcha ${pct.toFixed(0)}% tak pahunch gaya (${spent.toFixed(2)} / ${limit.toFixed(2)}).`,
+            title: `Budget Alert (${threshold}%): ${label}`,
+            message: `Spending reached ${pct.toFixed(0)}% (${spent.toFixed(2)} / ${limit.toFixed(2)}).`,
             is_read: false,
             created_at: new Date().toISOString(),
           });
@@ -197,8 +197,8 @@ export function NotificationProvider({ children }) {
           alerts.push({
             id: `bill-due-${r.id}-${r.next_due_date}`,
             type: 'bill_due',
-            title: `${r.type === 'income' ? 'Income' : 'Bill'} aane wala hai: ${r.title}`,
-            message: `${diffDays === 0 ? 'Aaj' : `${diffDays} din mein`} due hai, amount ${r.amount}.`,
+            title: `Upcoming ${r.type === 'income' ? 'Income' : 'Bill'}: ${r.title}`,
+            message: `Due ${diffDays === 0 ? 'today' : `in ${diffDays} days`}, amount ${r.amount}.`,
             is_read: false,
             created_at: new Date().toISOString(),
           });
@@ -206,8 +206,8 @@ export function NotificationProvider({ children }) {
           alerts.push({
             id: `bill-overdue-${r.id}-${r.next_due_date}`,
             type: 'bill_due',
-            title: `Bill late: ${r.title}`,
-            message: `${Math.abs(diffDays)} din pehle due tha, amount ${r.amount}.`,
+            title: `Overdue Bill: ${r.title}`,
+            message: `Was due ${Math.abs(diffDays)} days ago, amount ${r.amount}.`,
             is_read: false,
             created_at: new Date().toISOString(),
           });
@@ -215,7 +215,7 @@ export function NotificationProvider({ children }) {
       }
     });
 
-    // Loans / udhaar
+    // Loans and debts
     debts.forEach((d) => {
       if (!d.due_date || d.status === 'settled' || d.status === 'written_off') return;
       const rem = parseFloat(d.remaining_amount || 0);
@@ -224,11 +224,11 @@ export function NotificationProvider({ children }) {
       if (diffDays > 3) return;
       const who = contacts.find((c) => c.id === d.contact_id)?.name || 'Contact';
       const lent = d.direction === 'lent';
-      const when = diffDays < 0 ? `${Math.abs(diffDays)} din se late hai` : diffDays === 0 ? 'aaj due hai' : `${diffDays} din mein due hai`;
+      const when = diffDays < 0 ? `is overdue by ${Math.abs(diffDays)} days` : diffDays === 0 ? 'is due today' : `is due in ${diffDays} days`;
       alerts.push({
         id: `debt-due-${d.id}-${d.due_date}`,
         type: 'debt_due',
-        title: lent ? `Udhaar wapsi: ${who}` : `Udhaar dena hai: ${who}`,
+        title: lent ? `Loan Recovery Due: ${who}` : `Loan Repayment Due: ${who}`,
         message: `${rem.toFixed(2)} ${d.currency || ''} ${when}.`,
         is_read: false,
         created_at: new Date().toISOString(),
@@ -248,7 +248,7 @@ export function NotificationProvider({ children }) {
       items.push({
         key: `bill:${r.id}:${r.next_due_date}`,
         title: `${r.type === 'income' ? 'Income' : 'Bill'}: ${r.title}`,
-        body: `Aaj due hai — ${r.amount}`,
+        body: `Due today — ${r.amount}`,
         dueDate: r.next_due_date,
         daysBefore: [0, before],
       });
@@ -260,8 +260,8 @@ export function NotificationProvider({ children }) {
       const who = contacts.find((c) => c.id === d.contact_id)?.name || 'Contact';
       items.push({
         key: `debt:${d.id}:${d.due_date}`,
-        title: d.direction === 'lent' ? `Udhaar wapsi: ${who}` : `Udhaar dena hai: ${who}`,
-        body: `Aaj due hai — ${rem.toFixed(2)} ${d.currency || ''}`,
+        title: d.direction === 'lent' ? `Loan Recovery Due: ${who}` : `Loan Repayment Due: ${who}`,
+        body: `Due today — ${rem.toFixed(2)} ${d.currency || ''}`,
         dueDate: d.due_date,
         daysBefore: [0, 2],
       });

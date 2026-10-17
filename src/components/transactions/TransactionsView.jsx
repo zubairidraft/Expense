@@ -69,7 +69,7 @@ export default function TransactionsView({
   };
   const clearFilters = () => applySaved({});
   const saveCurrentFilter = () => {
-    const name = window.prompt('Is filter ka naam likho (jaise "Is mahine ka khana"):');
+    const name = window.prompt('Enter a name for this filter (e.g. "Dining Out This Month"):');
     if (!name || !name.trim()) return;
     const entry = { id: String(Date.now()), name: name.trim(), ...currentFilterState };
     persistSaved([...savedFilters.filter((f) => f.name !== entry.name), entry]);
@@ -174,7 +174,7 @@ export default function TransactionsView({
     deleteTransaction(tx.id).then((res) => {
       if (!res?.error) {
         showToast({
-          message: `“${tx.payee_name || tx.type}” delete ho gaya`,
+          message: `“${tx.payee_name || tx.type}” deleted`,
           actionLabel: 'Undo',
           onAction: () => restoreTransaction(tx.id, tx),
           duration: 5000,
@@ -376,11 +376,11 @@ export default function TransactionsView({
             onChange={(e) => setDatePreset(e.target.value)}
             aria-label="Date range"
           >
-            <option value="all">Kisi bhi date ka</option>
-            <option value="7d">Pichle 7 din</option>
-            <option value="30d">Pichle 30 din</option>
-            <option value="this_month">Is mahine</option>
-            <option value="last_month">Pichle mahine</option>
+            <option value="all">All Dates</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+            <option value="this_month">This Month</option>
+            <option value="last_month">Last Month</option>
           </select>
 
           <select
@@ -410,7 +410,7 @@ export default function TransactionsView({
                   type="button"
                   onClick={() => applySaved(f)}
                   style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0 }}
-                  title="Filter lagao"
+                  title="Apply filter"
                 >
                   ⭐ {f.name}
                 </button>
@@ -427,10 +427,10 @@ export default function TransactionsView({
             {hasActiveFilter && (
               <>
                 <button type="button" className="secondary-btn" onClick={saveCurrentFilter} style={{ padding: '0.3rem 0.7rem', fontSize: '0.82rem' }}>
-                  💾 Yeh filter save karo
+                  💾 Save this filter
                 </button>
                 <button type="button" className="secondary-btn" onClick={clearFilters} style={{ padding: '0.3rem 0.7rem', fontSize: '0.82rem' }}>
-                  ✕ Filters hatao
+                  ✕ Clear filters
                 </button>
               </>
             )}
@@ -540,7 +540,7 @@ export default function TransactionsView({
                           if (tx.is_foreign) return;
                           handleDelete(e, tx);
                         }}
-                        title={tx.is_foreign ? `Sirf ${tx.origin_workspace_name || 'originating'} workspace se delete ho sakti hai` : "Delete record"}
+                        title={tx.is_foreign ? `Can only be deleted from the ${tx.origin_workspace_name || 'originating'} workspace` : "Delete record"}
                         style={tx.is_foreign ? { opacity: 0.35, cursor: 'not-allowed' } : undefined}
                       >
                         {tx.is_foreign ? '🔒' : '🗑️'}

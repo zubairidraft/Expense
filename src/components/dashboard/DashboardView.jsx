@@ -142,6 +142,7 @@ export default function DashboardView({ onNavigateTab, onOpenOnboarding, onOpenT
   // Quick Add Form State
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
+  const [date, setDate] = useState(todayISO());
   const [type, setType] = useState('expense');
   const [category, setCategory] = useState(''); // category id
   const [transferToAccountId, setTransferToAccountId] = useState('');
@@ -221,7 +222,7 @@ export default function DashboardView({ onNavigateTab, onOpenOnboarding, onOpenT
       const res = await addTransaction({
         type: 'transfer',
         payeeName: title.trim() || `${acc.name} ➔ ${destAcc.name}`,
-        date: todayISO(),
+        date: date || todayISO(),
         lines: [
           {
             accountId: acc.id,
@@ -247,6 +248,7 @@ export default function DashboardView({ onNavigateTab, onOpenOnboarding, onOpenT
 
       setTitle('');
       setAmount('');
+      setDate(todayISO());
       return;
     }
 
@@ -255,7 +257,7 @@ export default function DashboardView({ onNavigateTab, onOpenOnboarding, onOpenT
     const res = await addTransaction({
       type,
       payeeName: title.trim(),
-      date: todayISO(),
+      date: date || todayISO(),
       lines: [
         {
           accountId: acc.id,
@@ -275,6 +277,7 @@ export default function DashboardView({ onNavigateTab, onOpenOnboarding, onOpenT
 
     setTitle('');
     setAmount('');
+    setDate(todayISO());
   };
 
   // Widget renderers (content only; size & position are handled by WidgetGrid)
@@ -404,6 +407,20 @@ export default function DashboardView({ onNavigateTab, onOpenOnboarding, onOpenT
                   >
                     ⇄ Transfer
                   </button>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="dash-tx-date">
+                    📅 Date
+                  </label>
+                  <input
+                    id="dash-tx-date"
+                    type="date"
+                    className="input-field"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    required
+                  />
                 </div>
 
                 <div className="form-group">

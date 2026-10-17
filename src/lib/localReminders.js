@@ -91,7 +91,7 @@ export async function syncLocalReminders({ items = [], budgetAlerts = [] }) {
         toSchedule.push({
           id: hashId(`${it.key}:${db}`),
           title: it.title,
-          body: db === 0 ? it.body : `${it.body} (${db} din baqi)`,
+          body: db === 0 ? it.body : `${it.body} (${db} day${db > 1 ? 's' : ''} left)`,
           schedule: { at, allowWhileIdle: true },
           extra: { kind: 'reminder' },
         });

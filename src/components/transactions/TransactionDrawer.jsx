@@ -21,7 +21,7 @@ export default function TransactionDrawer({
     deleteTransaction(tx.id).then((res) => {
       if (!res?.error) {
         showToast({
-          message: `“${tx.payee_name || tx.type}” delete ho gaya`,
+          message: `“${tx.payee_name || tx.type}” deleted`,
           actionLabel: 'Undo',
           onAction: () => restoreTransaction(tx.id, tx),
           duration: 5000,
@@ -38,7 +38,7 @@ export default function TransactionDrawer({
     updateStatus(tx.id, newStatus).then((res) => {
       if (!res?.error) {
         showToast({
-          message: `Status ab "${newStatus}" hai`,
+          message: `Status updated to "${newStatus}"`,
           actionLabel: 'Undo',
           onAction: () => updateStatus(tx.id, previous),
           duration: 5000,
@@ -309,7 +309,7 @@ export default function TransactionDrawer({
             disabled={transaction.is_foreign}
             onClick={handleDelete}
             style={transaction.is_foreign ? { opacity: 0.35, cursor: 'not-allowed' } : undefined}
-            title={transaction.is_foreign ? `Sirf ${transaction.origin_workspace_name || 'originating'} workspace se delete ho sakti hai` : 'Delete transaction'}
+            title={transaction.is_foreign ? `Can only be deleted from the ${transaction.origin_workspace_name || 'originating'} workspace` : 'Delete transaction'}
           >
             {transaction.is_foreign ? '🔒 Delete Disabled (Foreign Entry)' : '🗑️ Delete Transaction'}
           </button>
